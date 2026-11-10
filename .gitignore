@@ -1,0 +1,21 @@
+# Rahasia lokal; hanya template yang dibagikan.
+.env
+.env.*
+!.env.example
+
+# Konfigurasi dan riwayat agent bersifat lokal.
+/.omp/
+
+# Artefak build, test, log, dan backup lokal.
+/bin/
+/build/
+/coverage/
+/backups/
+coverage.out
+*.test
+*.exe
+*.log
+
+# Metadata sistem operasi.
+.DS_Store
+Thumbs.db
