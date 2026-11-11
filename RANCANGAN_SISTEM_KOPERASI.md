@@ -890,7 +890,7 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 - [x] `schedule.go`: pembagian pokok, jasa flat, kalender tanggal 10, dan periode berjalan.
 - [x] `date.go`: parsing tanggal bisnis dan normalisasi kalender tanpa pergeseran timezone.
 - [ ] `penalty.go`: denda per angsuran dan penghentian setelah lunas.
-- [ ] `allocation.go`: prioritas global denda → jasa → pokok.
+- [x] `allocation.go`: prioritas global denda → jasa → pokok.
 - [ ] `settlement.go`: pratinjau tunggakan, pelunasan, dan pembebasan jasa.
 - [ ] `*_test.go`: seluruh test perilaku Tahap 2; test uang/tanggal/jadwal sudah lulus, test denda/alokasi/pelunasan menunggu bagian anggota lain.
 
