@@ -4,7 +4,7 @@
 
 Baca [README.md](README.md) dan bagian relevan [RANCANGAN_SISTEM_KOPERASI.md](RANCANGAN_SISTEM_KOPERASI.md) sebelum bekerja. Rancangan memuat aturan bisnis, KD-01–KD-12, kontrak package, dan urutan tahap. Jangan menggandakan kebijakan dengan versi berbeda; laporkan konflik sebelum mengubah perilaku.
 
-Saat ini hanya **Tahap 1**: module/dependency Go, konfigurasi contoh, migration sembilan tabel dan integration test skema, serta dokumentasi bersama. Belum ada domain, config runtime, database pool aplikasi, server HTTP, login, akun awal, atau UI. Permintaan satu tugas/tahap bukan izin mengimplementasikan seluruh rancangan. Buat berkas saat benar-benar dibutuhkan, bukan stub atau abstraksi spekulatif.
+**Tahap 1 dan bagian fondasi/jadwal Tahap 2 sudah tersedia:** model bersama, operasi rupiah aman, tanggal bisnis, serta jadwal/periode berjalan telah diintegrasikan dan diuji. Denda, alokasi pembayaran, dan pelunasan dipercepat adalah tugas anggota lain; jangan mengimplementasikannya tanpa penugasan. Belum ada config runtime, pool aplikasi, server HTTP, login, akun pengurus awal, atau UI. Permintaan satu tugas bukan izin mengimplementasikan seluruh rancangan. Buat berkas saat benar-benar dibutuhkan, bukan stub atau abstraksi spekulatif.
 
 Sebelum mengedit, petakan caller, test, fixture, konfigurasi, dan dokumentasi terdampak. Pakai pola yang sudah ada, standard library, dan perubahan terkecil yang menyelesaikan kebutuhan. Hormati perubahan pengguna/kontributor lain; jangan menimpa pekerjaan mereka. Jangan hapus data riil, menjalankan reset destruktif, membuat commit, atau push tanpa permintaan eksplisit. Jangan memasukkan rahasia, dump, `.env`, atau konfigurasi lokal `.omp/` ke Git.
 
@@ -15,7 +15,7 @@ Module/import internal memakai **`koperasi`**, misalnya `koperasi/internal/domai
 | Lokasi | Tanggung jawab dan status |
 | --- | --- |
 | `migrations/` | Sudah termasuk Tahap 1: DDL berversi, constraint/indeks, test integrasi skema. Jangan seed transaksi atau password default. |
-| `internal/domain/` | **Belum diimplementasikan**: model dan perhitungan murni, tanpa SQL/HTTP atau `time.Now()` tersembunyi. Terima tanggal/snapshot sebagai argumen. |
+| `internal/domain/` | Model bersama, uang, tanggal bisnis, serta jadwal/periode berjalan; fungsi murni tanpa SQL/HTTP atau `time.Now()` tersembunyi. Denda/alokasi/pelunasan belum dikerjakan. |
 | `internal/config/`, `internal/database/` | **Belum diimplementasikan**: validasi environment; pool/ping/close MySQL. Tidak menjalankan migration saat startup. |
 | `internal/repository/` | **Belum diimplementasikan**: SQL berparameter `?`, mapping, agregasi dan row lock melalui DBTX kecil; bukan pemilik commit atau perhitungan bisnis. |
 | `internal/service/` | **Belum diimplementasikan**: validasi proses, transaksi, otorisasi, urutan lock, pemanggilan domain/repository. |
@@ -24,6 +24,8 @@ Module/import internal memakai **`koperasi`**, misalnya `koperasi/internal/domai
 | `web/templates/`, `web/static/` | **Belum diimplementasikan**: `html/template`, Bootstrap/aset lokal; bukan satu-satunya validasi. |
 
 Struktur terperinci berada pada Bagian 8 rancangan; daftar tersebut bukan perintah membuat semua direktori sekarang. Letakkan unit test dekat implementasi, bukan package test generik baru.
+
+Kontrak domain dan pembagian berkas Tahap 2 berada di README. Jangan mendefinisikan ulang model atau operasi uang di berkas anggota lain. Tanggal bisnis pada domain memakai komponen kalender dalam time.Time UTC tengah malam sebagai pembawa tanggal, bukan instant UTC: normalisasi mempertahankan tahun/bulan/hari tanpa `.In(...)`. Konversi instant riil ke Asia/Jakarta dilakukan pemanggil sebelum mengambil tanggal; tanggal nullable memakai *time.Time dan ID nullable *int64.
 
 ## Invariant Go/MySQL dan bisnis
 
@@ -44,12 +46,13 @@ Perintah yang tersedia saat ini:
 ```text
 go mod download
 go mod verify
+go test ./internal/domain
 go test -v ./migrations
 ```
 
 Test skema memerlukan `TEST_DATABASE_DSN` pada MySQL 8.4 dengan database khusus **sudah ada dan kosong**, nama ASCII aman berakhiran `_test`, serta hak DDL/DML terbatas di database itu. Test mengambil advisory lock, menolak database tidak kosong, dan hanya membersihkan tabel miliknya. Ikuti README; jangan pakai database pengembangan/riil. Hasil SKIP tanpa environment **bukan** bukti skema lulus. Jangan mengklaim pemeriksaan berhasil tanpa output nyata.
 
-`go test ./internal/domain` baru relevan **setelah package domain dibuat**; bukan perintah sukses yang tersedia saat ini. Untuk perubahan nontrivial sertakan test kecil yang relevan. Tentukan pemeriksaan sempit sesuai perubahan; pada pekerjaan beragen, worker tidak menjalankan build/test/lint/formatter saat pengeditan, pemilik integrasi menjalankan pemeriksaan setelah semua perubahan digabung. Laporkan apa yang dijalankan dan apa yang belum, tanpa klaim kesiapan transaksi riil.
+`go test ./internal/domain` memeriksa bagian domain yang sudah diimplementasikan dan tidak membutuhkan MySQL atau `.env`. Lulusnya test ini bukan berarti seluruh Tahap 2 selesai; denda, alokasi, dan pelunasan harus ditambahkan beserta test oleh pemiliknya. Untuk perubahan nontrivial sertakan test kecil yang relevan. Pada pekerjaan beragen, worker tidak menjalankan build/test/lint/formatter saat pengeditan; pemilik integrasi menjalankan pemeriksaan setelah perubahan digabung. Laporkan pemeriksaan yang benar-benar dijalankan, tanpa klaim kesiapan transaksi riil.
 
 ## Kolaborasi dan OMP
 

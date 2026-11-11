@@ -377,6 +377,7 @@ koperasi-app/
 │   │   ├── loan.go
 │   │   ├── payment.go
 │   │   ├── money.go
+│   │   ├── date.go
 │   │   ├── schedule.go
 │   │   ├── penalty.go
 │   │   ├── allocation.go
@@ -851,7 +852,7 @@ Agregasikan pembayaran per angsuran dahulu sebelum join dengan jadwal; jangan sa
 
 Prinsip pengerjaan: siapkan fondasi yang dipakai, lalu selesaikan satu alur bisnis dari database sampai halaman sebelum beralih ke alur berikutnya. Jangan menyelesaikan semua handler lebih dahulu ketika aturan uang belum ada.
 
-**Cara memakai checklist:** Tahap 1 telah diimplementasikan dan diverifikasi pada MySQL terisolasi; Tahap 2–10 belum dikerjakan. Centang item hanya setelah berkas/package terkait selesai dan syarat “Selesai bila” pada tahap tersebut terpenuhi. Package seperti repository/service/handler muncul lagi di beberapa tahap karena ditambah per fitur; mencentang satu tahap tidak berarti seluruh package sudah selesai. `web`, `migrations`, dan berkas root adalah pendukung; `migrations` saat ini juga memuat package test Go khusus skema.
+**Cara memakai checklist:** Tahap 1 telah diimplementasikan dan diverifikasi. Pada Tahap 2, model bersama, operasi uang, tanggal bisnis, serta jadwal/periode berjalan telah tersedia; denda, alokasi, dan pelunasan belum dikerjakan. Tahap 3–10 belum dikerjakan. Centang item hanya setelah berkas/package dan syarat verifikasinya selesai. Package seperti repository/service/handler muncul lagi di beberapa tahap karena ditambah per fitur; mencentang satu tahap tidak berarti seluruh package sudah selesai. `web`, `migrations`, dan berkas root adalah pendukung; `migrations` juga memuat package test Go khusus skema.
 
 ### Tahap 1 — Module, keputusan kebijakan, dan skema
 
@@ -884,13 +885,14 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist package `internal/domain`:**
 
-- [ ] Model: `member.go`, `saving.go`, `loan.go`, `payment.go`.
-- [ ] `money.go`: parsing rupiah, pembulatan, dan pemeriksaan overflow.
-- [ ] `schedule.go`: pembagian pokok dan kalender tanggal 10.
+- [x] Model: `member.go`, `saving.go`, `loan.go`, `payment.go`, termasuk snapshot pembayaran bersama `InstallmentBalance`.
+- [x] `money.go`: parsing rupiah, pembulatan, dan pemeriksaan overflow.
+- [x] `schedule.go`: pembagian pokok, jasa flat, kalender tanggal 10, dan periode berjalan.
+- [x] `date.go`: parsing tanggal bisnis dan normalisasi kalender tanpa pergeseran timezone.
 - [ ] `penalty.go`: denda per angsuran dan penghentian setelah lunas.
 - [ ] `allocation.go`: prioritas global denda → jasa → pokok.
 - [ ] `settlement.go`: pratinjau tunggakan, pelunasan, dan pembebasan jasa.
-- [ ] `*_test.go`: test perilaku keuangan, batas tanggal, dan invariant.
+- [ ] `*_test.go`: seluruh test perilaku Tahap 2; test uang/tanggal/jadwal sudah lulus, test denda/alokasi/pelunasan menunggu bagian anggota lain.
 
 1. Definisikan model dan konstanta sesuai status/jenis yang dipakai skema.
 2. Implementasikan parsing rupiah integer, pembulatan half-up, dan operasi nominal yang aman dari overflow. Jangan parsing melalui float.
@@ -901,6 +903,8 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 7. Tambahkan unit test untuk batas/aturan uang pada Bagian 15. Fungsi yang sama akan dipanggil service dan laporan.
 
 **Selesai bila:** `go test ./internal/domain` membuktikan contoh perhitungan, batas tanggal, prioritas alokasi, dan konservasi nominal. Domain tidak mengimpor SQL atau HTTP.
+
+**Handoff anggota 1–2:** fondasi model/uang/tanggal dan jadwal telah diintegrasikan dan lolos `go test -count=1 -v ./internal/domain`. Smoke pemakaian API juga membuktikan pinjaman Rp6.000.000/12 menghasilkan jadwal 10 Februari 2026–10 Januari 2027, pokok Rp500.000 dan jasa Rp60.000 per bulan, serta periode ketiga pada 11 Maret. Bagian ini tidak membutuhkan MySQL. Kontrak fungsi, snapshot, error, pembawa tanggal UTC, dan kepemilikan berkas anggota 3–5 dijelaskan pada bagian Tahap 2 di README; jangan membuat ulang model/rumus bersama. Seluruh Tahap 2 tetap belum selesai sampai tiga perhitungan berikutnya diimplementasikan dan diuji.
 
 ### Tahap 3 — `internal/config` lalu `internal/database`
 
@@ -1154,4 +1158,4 @@ Unit test diletakkan pada `internal/domain`; integration test pada `internal/ser
 11. Menyesuaikan rancangan ke MySQL 8.4 InnoDB: driver mysql, DATABASE_DSN, AUTO_INCREMENT, DATETIME UTC, BINARY(32), serta generated guard + UNIQUE untuk batas kondisional.
 12. Menambahkan checklist package, berkas, halaman, dan verifikasi yang dapat dicentang pada setiap tahap pengerjaan. Database lokal tetap mempertahankan transaksi dan lock untuk dua pengurus.
 
-Tahap 1 telah tersedia sebagai berkas nyata dan diuji pada MySQL 8.4.3 terisolasi dengan Go 1.26.6, termasuk akun migration/test berhak terbatas. `go mod verify`, TestSchema, perlindungan database test, serta pengecualian Git untuk konfigurasi lokal telah diperiksa. Tahap 2–10 masih berupa rancangan dan belum diimplementasikan; belum ada server HTTP atau aplikasi yang siap transaksi riil. Langkah setup dan menjalankan test berada pada README.md.
+Tahap 1 telah tersedia dan diuji pada MySQL 8.4.3 dengan Go 1.26.6, termasuk akun migration/test berhak terbatas. Pada Tahap 2, model bersama, operasi rupiah/tanggal, jadwal, dan periode berjalan telah tersedia serta lolos unit test dan smoke integrasi API. Denda, alokasi, pelunasan, dan Tahap 3–10 belum diimplementasikan; belum ada server HTTP atau aplikasi yang siap transaksi riil. Perubahan domain ini tidak mengubah migration atau data database. Langkah setup, kontrak handoff tim, dan perintah test berada pada README.md.
