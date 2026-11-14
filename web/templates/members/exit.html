@@ -1,0 +1,55 @@
+{{define "title"}}Keluar Anggota — {{.Detail.Member.Name}}{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm border-top border-danger border-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold text-danger mb-0">Konfirmasi Keluar Keanggotaan</h5>
+            </div>
+            <div class="card-body p-4">
+                {{if .Error}}
+                <div class="alert alert-danger small">{{.Error}}</div>
+                {{end}}
+
+                <div class="alert alert-warning small">
+                    <strong>Perhatian:</strong> Proses keluar keanggotaan bersifat <strong>permanen</strong>. Seluruh sisa simpanan (pokok, wajib, sukarela) akan dikembalikan secara penuh dan dicatat sebagai transaksi <code>PENGEMBALIAN_KELUAR</code>. Status anggota akan diubah menjadi <strong>EXITED</strong>.
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-semibold">Identitas Anggota</h6>
+                    <table class="table table-sm table-borderless">
+                        <tr><td class="text-muted" style="width: 35%">No. Anggota</td><td class="fw-bold">{{.Detail.Member.MemberNumber}}</td></tr>
+                        <tr><td class="text-muted">Nama</td><td class="fw-bold">{{.Detail.Member.Name}}</td></tr>
+                        <tr><td class="text-muted">Tanggal Masuk</td><td>{{formatDate .Detail.Member.JoinDate}}</td></tr>
+                    </table>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-semibold">Rincian Pengembalian Simpanan</h6>
+                    <table class="table table-bordered">
+                        <tr><td>Simpanan Pokok</td><td class="text-end fw-semibold">{{formatRupiah .Detail.PokokBalance}}</td></tr>
+                        <tr><td>Simpanan Wajib</td><td class="text-end fw-semibold">{{formatRupiah .Detail.WajibBalance}}</td></tr>
+                        <tr><td>Simpanan Sukarela</td><td class="text-end fw-semibold">{{formatRupiah .Detail.SukarelaBalance}}</td></tr>
+                        <tr class="table-light"><td class="fw-bold">Total Pengembalian</td><td class="text-end fw-bold text-success">{{formatRupiah .Detail.TotalSavings}}</td></tr>
+                    </table>
+                </div>
+
+                <form method="POST" action="/members/{{.Detail.Member.ID}}/exit">
+                    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+
+                    <div class="mb-4">
+                        <label for="exit_date" class="form-label small fw-semibold">Tanggal Keluar (Penyerahan Dana)</label>
+                        <input type="date" class="form-control" id="exit_date" name="exit_date" value="{{.ExitDate}}" required>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="/members/{{.Detail.Member.ID}}" class="btn btn-secondary">Batal</a>
+                        <button type="submit" class="btn btn-danger fw-semibold" onclick="return confirm('Apakah Anda yakin ingin memproses pengeluaran anggota ini beserta pengembalian seluruh simpanannya?')">Konfirmasi Keluar & Kembalikan Simpanan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

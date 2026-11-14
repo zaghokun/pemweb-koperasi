@@ -1,0 +1,69 @@
+{{define "title"}}Daftar Anggota — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Daftar Anggota</h2>
+        <p class="text-muted small mb-0">Total terdaftar: {{.TotalMembers}} anggota</p>
+    </div>
+    <a href="/members/new" class="btn btn-primary fw-semibold">+ Tambah Anggota</a>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="GET" action="/members" class="row g-2">
+            <div class="col-md-10">
+                <input type="text" class="form-control" name="q" value="{{.Search}}" placeholder="Cari nama atau nomor anggota...">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary w-100">Cari</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>No. Anggota</th>
+                    <th>Nama</th>
+                    <th>Telepon</th>
+                    <th>Tanggal Masuk</th>
+                    <th>Total Simpanan</th>
+                    <th>Status</th>
+                    <th class="text-end">Tindakan</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Members}}
+                    {{range .Members}}
+                    <tr>
+                        <td class="fw-semibold">{{.Member.MemberNumber}}</td>
+                        <td>{{.Member.Name}}</td>
+                        <td>{{.Member.Phone}}</td>
+                        <td>{{formatDate .Member.JoinDate}}</td>
+                        <td class="fw-semibold text-success">{{formatRupiah .TotalSavings}}</td>
+                        <td>
+                            {{if eq .Member.Status "ACTIVE"}}
+                            <span class="badge bg-success">AKTIF</span>
+                            {{else}}
+                            <span class="badge bg-danger">KELUAR</span>
+                            {{end}}
+                        </td>
+                        <td class="text-end">
+                            <a href="/members/{{.Member.ID}}" class="btn btn-sm btn-outline-light text-primary border">Detail</a>
+                        </td>
+                    </tr>
+                    {{end}}
+                {{else}}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">Belum ada data anggota.</td>
+                    </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}

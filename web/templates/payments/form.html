@@ -1,0 +1,96 @@
+{{define "title"}}Terima Pembayaran — Pinjaman #{{.Preview.Loan.ID}}{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0">Penerimaan Pembayaran Angsuran</h5>
+            </div>
+            <div class="card-body p-4">
+                {{if .Error}}
+                <div class="alert alert-danger small">{{.Error}}</div>
+                {{end}}
+
+                <div class="alert alert-info small mb-4">
+                    <strong>Prioritas Alokasi (KD-04 & BR-12):</strong> Uang pembayaran akan dialokasikan secara global dengan urutan: <strong>Semua Denda &rarr; Semua Jasa &rarr; Semua Pokok</strong>, dengan angsuran tertua didahulukan per komponen. Pembayaran sebagian tidak menghentikan denda hari berikutnya jika angsuran belum lunas penuh.
+                </div>
+
+                <div class="card bg-light border-0 p-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small">Peminjam:</span>
+                            <h5 class="fw-bold mb-0">{{.Preview.Member.Name}} ({{.Preview.Member.MemberNumber}})</h5>
+                            <span class="text-muted small">Pinjaman #{{.Preview.Loan.ID}} &bull; Periode Berjalan: Ke-{{.Preview.CurrentPeriod}}</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-muted small">Total Kewajiban Dapat Dibayar:</span>
+                            <h4 class="fw-bold text-primary mb-0">{{formatRupiah .Preview.TotalObligation}}</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-2">Rincian Angsuran Yang Dapat Dibayar:</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Angsuran</th>
+                                <th class="text-end">Denda</th>
+                                <th class="text-end">Jasa</th>
+                                <th class="text-end">Pokok</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{if .Preview.Obligations}}
+                                {{range .Preview.Obligations}}
+                                <tr>
+                                    <td>Angsuran #{{.InstallmentNumber}}</td>
+                                    <td class="text-end text-danger">{{formatRupiah .Penalty}}</td>
+                                    <td class="text-end">{{formatRupiah .Interest}}</td>
+                                    <td class="text-end">{{formatRupiah .Principal}}</td>
+                                    <td class="text-end fw-semibold">{{formatRupiah (add (add .Penalty .Interest) .Principal)}}</td>
+                                </tr>
+                                {{end}}
+                                <tr class="table-light fw-bold">
+                                    <td>TOTAL</td>
+                                    <td class="text-end text-danger">{{formatRupiah .Preview.TotalPenalty}}</td>
+                                    <td class="text-end">{{formatRupiah .Preview.TotalInterest}}</td>
+                                    <td class="text-end">{{formatRupiah .Preview.TotalPrincipal}}</td>
+                                    <td class="text-end text-primary">{{formatRupiah .Preview.TotalObligation}}</td>
+                                </tr>
+                            {{else}}
+                                <tr><td colspan="5" class="text-center py-3 text-muted">Tidak ada kewajiban yang jatuh tempo atau periode berjalan.</td></tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+
+                <form method="POST" action="/loans/{{.Preview.Loan.ID}}/payments">
+                    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+                    <input type="hidden" name="request_key" value="{{.RequestKey}}">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="payment_date" class="form-label small fw-semibold">Tanggal Pembayaran</label>
+                            <input type="date" class="form-control" id="payment_date" name="payment_date" value="{{.PaymentDate}}" required onchange="location.href='?payment_date='+this.value">
+                            <small class="text-muted">Mengubah tanggal akan menghitung ulang denda harian.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label small fw-semibold">Nominal Diterima (Rupiah)</label>
+                            <input type="number" class="form-control" id="amount" name="amount" value="{{.Amount}}" max="{{.Preview.TotalObligation}}" required placeholder="Contoh: 560000">
+                            <small class="text-muted">Maksimal: {{formatRupiah .Preview.TotalObligation}} (kelebihan ditolak).</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/loans/{{.Preview.Loan.ID}}" class="btn btn-secondary">Batal</a>
+                        <button type="submit" class="btn btn-primary fw-semibold" {{if not .Preview.Obligations}}disabled{{end}}>Proses Pembayaran</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

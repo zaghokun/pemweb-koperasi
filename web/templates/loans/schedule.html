@@ -1,0 +1,60 @@
+{{define "title"}}Jadwal Angsuran Pinjaman #{{.Detail.Loan.ID}} — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="/loans/{{.Detail.Loan.ID}}" class="btn btn-sm btn-outline-secondary mb-2">&larr; Kembali ke Detail Pinjaman</a>
+        <h2 class="h4 fw-bold mb-0">Jadwal Angsuran Pinjaman #{{.Detail.Loan.ID}}</h2>
+        <p class="text-muted small mb-0">Peminjam: <strong>{{.Detail.Member.Name}}</strong> ({{.Detail.Member.MemberNumber}}) &bull; Pokok: <strong>{{formatRupiah .Detail.Loan.Principal}}</strong> &bull; Tenor: <strong>{{.Detail.Loan.TenorMonths}} bulan</strong></p>
+    </div>
+    <div class="d-flex gap-2 no-print">
+        <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">Cetak Jadwal</button>
+        {{if eq .Detail.Loan.Status "ACTIVE"}}
+        <a href="/loans/{{.Detail.Loan.ID}}/payments/new" class="btn btn-sm btn-warning">+ Terima Pembayaran</a>
+        {{end}}
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Ke-</th>
+                    <th>Jatuh Tempo</th>
+                    <th class="text-end">Pokok</th>
+                    <th class="text-end">Jasa (1% Flat)</th>
+                    <th class="text-end">Total Angsuran</th>
+                    <th class="text-center">Status</th>
+                    <th>Tgl Penutupan</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Detail.Installments}}
+                    {{range .Detail.Installments}}
+                    <tr>
+                        <td class="fw-bold">#{{.InstallmentNumber}}</td>
+                        <td class="fw-semibold">{{formatDate .DueDate}}</td>
+                        <td class="text-end">{{formatRupiah .PrincipalDue}}</td>
+                        <td class="text-end">{{formatRupiah .InterestDue}}</td>
+                        <td class="text-end fw-bold text-primary">{{formatRupiah (add .PrincipalDue .InterestDue)}}</td>
+                        <td class="text-center">
+                            {{if .ClosedOn}}
+                                <span class="badge bg-success">LUNAS</span>
+                            {{else if gt .InterestWaived 0}}
+                                <span class="badge bg-info text-dark">DIBEBASKAN</span>
+                            {{else}}
+                                <span class="badge bg-secondary">BELUM LUNAS</span>
+                            {{end}}
+                        </td>
+                        <td class="small text-muted">{{if .ClosedOn}}{{formatDate .ClosedOn}}{{else}}-{{end}}</td>
+                    </tr>
+                    {{end}}
+                {{else}}
+                    <tr><td colspan="7" class="text-center py-4 text-muted">Jadwal angsuran belum dibentuk. Pinjaman harus disetujui dan dicairkan terlebih dahulu.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}

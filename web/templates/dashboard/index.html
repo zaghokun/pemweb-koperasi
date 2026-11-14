@@ -1,0 +1,45 @@
+{{define "title"}}Dashboard — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Dashboard Pengurus</h2>
+        <p class="text-muted small mb-0">Selamat datang, {{.User.Name}} ({{.User.Username}})</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <span class="text-muted small">Total Anggota Aktif</span>
+                <h3 class="fw-bold text-primary mt-2 mb-0">{{.TotalMembers}}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <span class="text-muted small">Total Simpanan</span>
+                <h3 class="fw-bold text-success mt-2 mb-0">{{.TotalSavingsFormatted}}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <span class="text-muted small">Pinjaman Aktif</span>
+                <h3 class="fw-bold text-warning mt-2 mb-0">{{.ActiveLoansCount}}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <span class="text-muted small">Total Tunggakan</span>
+                <h3 class="fw-bold text-danger mt-2 mb-0">{{.TotalArrearsFormatted}}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

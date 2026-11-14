@@ -1,0 +1,107 @@
+{{define "title"}}Detail Pinjaman #{{.Detail.Loan.ID}} — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="/loans" class="btn btn-sm btn-outline-secondary mb-2">&larr; Kembali ke Daftar Pinjaman</a>
+        <h2 class="h4 fw-bold mb-0">Pinjaman #{{.Detail.Loan.ID}} — {{.Detail.Member.Name}}</h2>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        {{if eq .Detail.Loan.Status "PENDING"}}
+            <span class="badge bg-warning p-2">MENUNGGU PERSETUJUAN</span>
+            <form method="POST" action="/loans/{{.Detail.Loan.ID}}/approve" class="d-inline m-0">
+                <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+                <button type="submit" class="btn btn-success btn-sm">Setujui Pinjaman</button>
+            </form>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="document.getElementById('reject-form').style.display='block'">Tolak</button>
+        {{else if eq .Detail.Loan.Status "APPROVED"}}
+            <span class="badge bg-primary p-2">DISETUJUI (SIAP CAIR)</span>
+            <button type="button" class="btn btn-success btn-sm" onclick="document.getElementById('disburse-form').style.display='block'">Cairkan & Buat Jadwal</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="document.getElementById('reject-form').style.display='block'">Batalkan Persetujuan</button>
+        {{else if eq .Detail.Loan.Status "ACTIVE"}}
+            <span class="badge bg-success p-2">AKTIF BERJALAN</span>
+            <a href="/loans/{{.Detail.Loan.ID}}/installments" class="btn btn-primary btn-sm">Lihat Jadwal Angsuran</a>
+            <a href="/loans/{{.Detail.Loan.ID}}/payments/new" class="btn btn-warning btn-sm">+ Terima Pembayaran</a>
+            <a href="/loans/{{.Detail.Loan.ID}}/settlement" class="btn btn-outline-primary btn-sm">Pelunasan Dipercepat</a>
+        {{else if eq .Detail.Loan.Status "SETTLED"}}
+            <span class="badge bg-secondary p-2">LUNAS (SETTLED)</span>
+            <a href="/loans/{{.Detail.Loan.ID}}/installments" class="btn btn-outline-secondary btn-sm">Lihat Jadwal Historis</a>
+        {{else if eq .Detail.Loan.Status "REJECTED"}}
+            <span class="badge bg-danger p-2">DITOLAK / DIBATALKAN</span>
+        {{end}}
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0">Rincian Pokok & Tenor</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless">
+                    <tr><td class="text-muted" style="width: 40%">Pokok Awal</td><td class="fw-bold text-primary">{{formatRupiah .Detail.Loan.Principal}}</td></tr>
+                    <tr><td class="text-muted">Tenor Angsuran</td><td>{{.Detail.Loan.TenorMonths}} bulan</td></tr>
+                    <tr><td class="text-muted">Jasa Bulanan (1% Flat)</td><td class="fw-semibold">{{formatRupiah (div (mul .Detail.Loan.Principal 1) 100)}} / bulan</td></tr>
+                    <tr><td class="text-muted">Tanggal Pengajuan</td><td>{{formatDate .Detail.Loan.ApplicationDate}}</td></tr>
+                    <tr><td class="text-muted">Tanggal Pencairan</td><td>{{if .Detail.Loan.DisbursementDate}}{{formatDate .Detail.Loan.DisbursementDate}}{{else}}-{{end}}</td></tr>
+                    <tr><td class="text-muted">Tanggal Lunas</td><td>{{if .Detail.Loan.SettledOn}}{{formatDate .Detail.Loan.SettledOn}}{{else}}-{{end}}</td></tr>
+                    {{if .Detail.Loan.RejectionReason}}
+                    <tr class="table-danger"><td class="text-danger fw-semibold">Alasan Penolakan</td><td class="text-danger">{{.Detail.Loan.RejectionReason}}</td></tr>
+                    {{end}}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0">Informasi Peminjam</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless">
+                    <tr><td class="text-muted" style="width: 40%">No. Anggota</td><td><a href="/members/{{.Detail.Member.ID}}" class="fw-bold">{{.Detail.Member.MemberNumber}}</a></td></tr>
+                    <tr><td class="text-muted">Nama Peminjam</td><td class="fw-semibold">{{.Detail.Member.Name}}</td></tr>
+                    <tr><td class="text-muted">Telepon</td><td>{{.Detail.Member.Phone}}</td></tr>
+                    <tr><td class="text-muted">Alamat</td><td>{{.Detail.Member.Address}}</td></tr>
+                    <tr><td class="text-muted">Status Keanggotaan</td><td>
+                        {{if eq .Detail.Member.Status "ACTIVE"}}<span class="badge bg-success">AKTIF</span>{{else}}<span class="badge bg-danger">KELUAR</span>{{end}}
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal / Form Form Pencairan -->
+<div id="disburse-form" class="card border-0 shadow-sm border-top border-success border-4 mb-4 p-4" style="display: none;">
+    <h5 class="fw-bold text-success mb-2">Formulir Pencairan Dana Pinjaman</h5>
+    <p class="text-muted small">Pencairan akan mengunci status pinjaman menjadi ACTIVE dan otomatis membentuk jadwal angsuran setiap tanggal 10 bulan berikutnya secara atomik.</p>
+    <form method="POST" action="/loans/{{.Detail.Loan.ID}}/disburse" class="row g-3 align-items-end">
+        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+        <div class="col-md-4">
+            <label for="disbursement_date" class="form-label small fw-semibold">Tanggal Pencairan Dana</label>
+            <input type="date" class="form-control" id="disbursement_date" name="disbursement_date" value="{{.Today}}" required>
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-success fw-semibold">Cairkan Pinjaman Sekarang</button>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('disburse-form').style.display='none'">Batal</button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal / Form Penolakan -->
+<div id="reject-form" class="card border-0 shadow-sm border-top border-danger border-4 mb-4 p-4" style="display: none;">
+    <h5 class="fw-bold text-danger mb-2">Formulir Penolakan / Pembatalan Pinjaman</h5>
+    <form method="POST" action="/loans/{{.Detail.Loan.ID}}/reject">
+        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+        <div class="mb-3">
+            <label for="rejection_reason" class="form-label small fw-semibold">Alasan Penolakan</label>
+            <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="2" required placeholder="Contoh: Saldo simpanan belum mencukupi batas 3x"></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger fw-semibold">Konfirmasi Tolak Pinjaman</button>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('reject-form').style.display='none'">Batal</button>
+    </form>
+</div>
+{{end}}

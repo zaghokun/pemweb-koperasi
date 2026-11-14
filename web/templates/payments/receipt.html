@@ -1,0 +1,91 @@
+{{define "title"}}Kuitansi Pembayaran #{{.Receipt.Payment.ID}} — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="mb-3 d-flex justify-content-between no-print">
+            <a href="/loans/{{.Receipt.Loan.ID}}" class="btn btn-sm btn-outline-secondary">&larr; Kembali ke Detail Pinjaman</a>
+            <button onclick="window.print()" class="btn btn-sm btn-primary">Cetak Kuitansi</button>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 bg-white border">
+            <div class="text-center border-bottom pb-3 mb-4">
+                <h4 class="fw-bold text-primary mb-1">KOPERASI KARYAWAN SEJAHTERA</h4>
+                <p class="text-muted small mb-0">BUKTI PENERIMAAN PEMBAYARAN PINJAMAN (KUITANSI RESMI)</p>
+            </div>
+
+            <table class="table table-sm table-borderless mb-4">
+                <tr>
+                    <td class="text-muted" style="width: 35%">No. Kuitansi</td>
+                    <td class="fw-bold">#{{.Receipt.Payment.ID}}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">Tanggal Bayar</td>
+                    <td>{{formatDate .Receipt.Payment.PaymentDate}}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">No. Pinjaman</td>
+                    <td><a href="/loans/{{.Receipt.Loan.ID}}">Pinjaman #{{.Receipt.Loan.ID}}</a></td>
+                </tr>
+                <tr>
+                    <td class="text-muted">No. / Nama Anggota</td>
+                    <td class="fw-bold">{{.Receipt.Member.MemberNumber}} — {{.Receipt.Member.Name}}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">Jenis Pembayaran</td>
+                    <td><span class="badge bg-secondary">{{.Receipt.Payment.PaymentType}}</span></td>
+                </tr>
+                <tr class="border-top">
+                    <td class="text-muted pt-3"><h5>Total Uang Diterima</h5></td>
+                    <td class="pt-3"><h4 class="fw-bold text-primary">{{formatRupiah .Receipt.Payment.Amount}}</h4></td>
+                </tr>
+            </table>
+
+            <h6 class="fw-bold mb-2">Rincian Alokasi Pembayaran (KD-04):</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sasaran</th>
+                            <th>Komponen</th>
+                            <th class="text-end">Nominal Dialokasikan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Receipt.Allocations}}
+                        <tr>
+                            <td>{{if .InstallmentID}}Angsuran ID #{{.InstallmentID}}{{else}}Pinjaman (Admin){{end}}</td>
+                            <td>
+                                {{if eq .ComponentType "DENDA"}}<span class="badge bg-danger">DENDA</span>
+                                {{else if eq .ComponentType "JASA"}}<span class="badge bg-primary">JASA</span>
+                                {{else if eq .ComponentType "POKOK"}}<span class="badge bg-success">POKOK</span>
+                                {{else if eq .ComponentType "ADMIN"}}<span class="badge bg-warning text-dark">ADMINISTRASI</span>
+                                {{end}}
+                            </td>
+                            <td class="text-end fw-semibold">{{formatRupiah .Amount}}</td>
+                        </tr>
+                        {{end}}
+                        <tr class="table-light fw-bold">
+                            <td colspan="2">TOTAL ALOKASI</td>
+                            <td class="text-end text-primary">{{formatRupiah .Receipt.Payment.Amount}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row text-center mt-5">
+                <div class="col-6">
+                    <p class="text-muted small mb-4">Penyetor (Anggota)</p>
+                    <div style="height: 50px;"></div>
+                    <p class="fw-semibold mb-0">({{.Receipt.Member.Name}})</p>
+                </div>
+                <div class="col-6">
+                    <p class="text-muted small mb-4">Penerima (Pengurus Koperasi)</p>
+                    <div style="height: 50px;"></div>
+                    <p class="fw-semibold mb-0">( Pengurus Koperasi )</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

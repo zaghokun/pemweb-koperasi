@@ -1,0 +1,78 @@
+{{define "title"}}Riwayat Simpanan — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Riwayat Transaksi Simpanan</h2>
+        <p class="text-muted small mb-0">Total mutasi tercatat: {{.TotalCount}} transaksi</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/savings/new" class="btn btn-success fw-semibold">+ Setoran Simpanan</a>
+        <a href="/savings/withdrawals/new" class="btn btn-warning fw-semibold">- Penarikan Sukarela</a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="GET" action="/savings" class="row g-2">
+            <div class="col-md-5">
+                <input type="number" class="form-control" name="member_id" value="{{.MemberID}}" placeholder="Filter berdasarkan ID Anggota...">
+            </div>
+            <div class="col-md-5">
+                <select class="form-select" name="type">
+                    <option value="">Semua Jenis Simpanan</option>
+                    <option value="POKOK" {{if eq .SavingType "POKOK"}}selected{{end}}>POKOK</option>
+                    <option value="WAJIB" {{if eq .SavingType "WAJIB"}}selected{{end}}>WAJIB</option>
+                    <option value="SUKARELA" {{if eq .SavingType "SUKARELA"}}selected{{end}}>SUKARELA</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>ID Anggota</th>
+                    <th>Tanggal</th>
+                    <th>Jenis</th>
+                    <th>Transaksi</th>
+                    <th>Periode</th>
+                    <th class="text-end">Nominal</th>
+                    <th>Keterangan</th>
+                    <th class="text-end">Kuitansi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Savings}}
+                    {{range .Savings}}
+                    <tr>
+                        <td>#{{.ID}}</td>
+                        <td><a href="/members/{{.MemberID}}">Anggota #{{.MemberID}}</a></td>
+                        <td>{{formatDate .TransactionDate}}</td>
+                        <td><span class="badge bg-secondary">{{.SavingType}}</span></td>
+                        <td>{{.TransactionType}}</td>
+                        <td>{{if .PeriodMonth}}{{formatMonth .PeriodMonth}}{{else}}-{{end}}</td>
+                        <td class="text-end fw-semibold {{if eq .TransactionType "SETOR"}}text-success{{else}}text-danger{{end}}">
+                            {{if eq .TransactionType "SETOR"}}+{{else}}-{{end}}{{formatRupiah .Amount}}
+                        </td>
+                        <td class="small text-muted">{{if .Description}}{{.Description}}{{else}}-{{end}}</td>
+                        <td class="text-end">
+                            <a href="/savings/{{.ID}}/receipt" class="btn btn-sm btn-outline-secondary">Kuitansi</a>
+                        </td>
+                    </tr>
+                    {{end}}
+                {{else}}
+                    <tr><td colspan="9" class="text-center py-4 text-muted">Belum ada riwayat transaksi simpanan.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}

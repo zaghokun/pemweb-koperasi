@@ -1,0 +1,71 @@
+{{define "title"}}Kuitansi Simpanan #{{.Saving.ID}} — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="mb-3 d-flex justify-content-between no-print">
+            <a href="/members/{{.Member.ID}}" class="btn btn-sm btn-outline-secondary">&larr; Kembali ke Profil Anggota</a>
+            <button onclick="window.print()" class="btn btn-sm btn-primary">Cetak Kuitansi</button>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 bg-white border">
+            <div class="text-center border-bottom pb-3 mb-4">
+                <h4 class="fw-bold text-primary mb-1">KOPERASI KARYAWAN SEJAHTERA</h4>
+                <p class="text-muted small mb-0">BUKTI TRANSAKSI SIMPANAN (KUITANSI RESMI)</p>
+            </div>
+
+            <table class="table table-sm table-borderless mb-4">
+                <tr>
+                    <td class="text-muted" style="width: 35%">No. Transaksi</td>
+                    <td class="fw-bold">#{{.Saving.ID}}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">Tanggal Transaksi</td>
+                    <td>{{formatDate .Saving.TransactionDate}}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">No. / Nama Anggota</td>
+                    <td class="fw-bold">{{.Member.MemberNumber}} — {{.Member.Name}}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted">Jenis Simpanan</td>
+                    <td><strong>{{.Saving.SavingType}}</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-muted">Jenis Transaksi</td>
+                    <td><span class="badge {{if eq .Saving.TransactionType "SETOR"}}bg-success{{else}}bg-danger{{end}}">{{.Saving.TransactionType}}</span></td>
+                </tr>
+                {{if .Saving.PeriodMonth}}
+                <tr>
+                    <td class="text-muted">Periode Wajib</td>
+                    <td class="fw-semibold">{{formatMonth .Saving.PeriodMonth}}</td>
+                </tr>
+                {{end}}
+                {{if .Saving.Description}}
+                <tr>
+                    <td class="text-muted">Keterangan</td>
+                    <td>{{.Saving.Description}}</td>
+                </tr>
+                {{end}}
+                <tr class="border-top">
+                    <td class="text-muted pt-3"><h5>Jumlah Uang</h5></td>
+                    <td class="pt-3"><h4 class="fw-bold text-primary">{{formatRupiah .Saving.Amount}}</h4></td>
+                </tr>
+            </table>
+
+            <div class="row text-center mt-5">
+                <div class="col-6">
+                    <p class="text-muted small mb-4">Penyetor / Penerima</p>
+                    <div style="height: 50px;"></div>
+                    <p class="fw-semibold mb-0">({{.Member.Name}})</p>
+                </div>
+                <div class="col-6">
+                    <p class="text-muted small mb-4">Pengurus Koperasi</p>
+                    <div style="height: 50px;"></div>
+                    <p class="fw-semibold mb-0">( Pengurus Koperasi )</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

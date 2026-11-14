@@ -889,10 +889,10 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 - [x] `money.go`: parsing rupiah, pembulatan, dan pemeriksaan overflow.
 - [x] `schedule.go`: pembagian pokok, jasa flat, kalender tanggal 10, dan periode berjalan.
 - [x] `date.go`: parsing tanggal bisnis dan normalisasi kalender tanpa pergeseran timezone.
-- [ ] `penalty.go`: denda per angsuran dan penghentian setelah lunas.
+- [x] `penalty.go`: denda per angsuran dan penghentian setelah lunas.
 - [x] `allocation.go`: prioritas global denda → jasa → pokok.
-- [ ] `settlement.go`: pratinjau tunggakan, pelunasan, dan pembebasan jasa.
-- [ ] `*_test.go`: seluruh test perilaku Tahap 2; test uang/tanggal/jadwal sudah lulus, test denda/alokasi/pelunasan menunggu bagian anggota lain.
+- [x] `settlement.go`: pratinjau tunggakan, pelunasan, dan pembebasan jasa.
+- [x] `*_test.go`: seluruh test perilaku Tahap 2; seluruh unit test domain (uang, tanggal, jadwal, denda, alokasi, pelunasan) telah diimplementasikan dan lulus.
 
 1. Definisikan model dan konstanta sesuai status/jenis yang dipakai skema.
 2. Implementasikan parsing rupiah integer, pembulatan half-up, dan operasi nominal yang aman dari overflow. Jangan parsing melalui float.
@@ -910,9 +910,9 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist package:**
 
-- [ ] `internal/config/config.go`: validasi APP_ADDR, DATABASE_DSN, COOKIE_SECURE.
-- [ ] `internal/database/mysql.go`: driver, pool, UTC, ping dengan timeout, dan close.
-- [ ] `.env.example`: contoh DSN MySQL tanpa rahasia.
+- [x] `internal/config/config.go`: validasi APP_ADDR, DATABASE_DSN, COOKIE_SECURE.
+- [x] `internal/database/mysql.go`: driver, pool, UTC, ping dengan timeout, dan close.
+- [x] `.env.example`: contoh DSN MySQL tanpa rahasia.
 
 1. Baca dan validasi APP_ADDR, DATABASE_DSN, COOKIE_SECURE; environment yang wajib kosong menyebabkan startup gagal dengan pesan jelas.
 2. Muat Asia/Jakarta untuk tanggal bisnis; gunakan UTC untuk waktu audit dan sesi sesuai Bagian 10.3.
@@ -927,14 +927,14 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist package/halaman:**
 
-- [ ] `internal/repository/dbtx.go`, `users.go`, `sessions.go`.
-- [ ] `internal/service/service.go`, `auth.go`.
-- [ ] `internal/middleware/session.go`, `auth.go`, `csrf.go`.
-- [ ] `internal/handler/handler.go`, `auth.go`.
-- [ ] `internal/router/router.go`: login, logout, dan route terlindungi.
-- [ ] `cmd/server/main.go`: perakitan dependency, timeout, dan graceful shutdown.
-- [ ] `web/templates/layouts/base.html`, `auth/login.html`, serta aset Bootstrap lokal.
-- [ ] Setup dua akun pengurus tanpa password default di migration.
+- [x] `internal/repository/dbtx.go`, `users.go`, `sessions.go`.
+- [x] `internal/service/service.go`, `auth.go`.
+- [x] `internal/middleware/session.go`, `auth.go`, `csrf.go`.
+- [x] `internal/handler/handler.go`, `auth.go`.
+- [x] `internal/router/router.go`: login, logout, dan route terlindungi.
+- [x] `cmd/server/main.go`: perakitan dependency, timeout, dan graceful shutdown.
+- [x] `web/templates/layouts/base.html`, `auth/login.html`, serta aset Bootstrap lokal.
+- [x] Setup dua akun pengurus tanpa password default di migration.
 
 1. Buat DBTX dan query pengguna/sesi berparameter.
 2. Service auth memverifikasi bcrypt, membuat/menghapus sesi, dan merotasi sesi setelah login.
@@ -951,13 +951,13 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist package/halaman:**
 
-- [ ] `internal/repository/members.go`, `savings.go`: query, agregat, dan row lock.
-- [ ] `internal/service/members.go`, `savings.go`: daftar, setor, tarik, dan keluar atomik.
-- [ ] `internal/handler/members.go`, `savings.go`.
-- [ ] `web/templates/members/{index.html,form.html,detail.html,exit.html}`.
-- [ ] `web/templates/savings/{index.html,deposit.html,withdrawal.html}`.
-- [ ] `internal/router/router.go`: route anggota, simpanan, penarikan, dan bukti transaksi.
-- [ ] `internal/service/*_test.go`: rollback pendaftaran, duplikasi periode, keluar, dan penarikan bersamaan pada MySQL.
+- [x] `internal/repository/members.go`, `savings.go`: query, agregat, dan row lock.
+- [x] `internal/service/members.go`, `savings.go`: daftar, setor, tarik, dan keluar atomik.
+- [x] `internal/handler/members.go`, `savings.go`.
+- [x] `web/templates/members/{index.html,form.html,detail.html,exit.html}`.
+- [x] `web/templates/savings/{index.html,deposit.html,withdrawal.html}`.
+- [x] `internal/router/router.go`: route anggota, simpanan, penarikan, dan bukti transaksi.
+- [x] `internal/service/*_test.go`: rollback pendaftaran, duplikasi periode, keluar, dan penarikan bersamaan pada MySQL.
 
 1. Implementasikan pendaftaran atomik dengan setoran pokok Rp500.000.
 2. Implementasikan daftar, pencarian, detail, dan edit identitas anggota.
@@ -974,12 +974,12 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist package/halaman:**
 
-- [ ] `internal/repository/loans.go`, `installments.go`.
-- [ ] `internal/service/loans.go`: pengajuan, persetujuan, penolakan, dan pencairan.
-- [ ] `internal/handler/loans.go`.
-- [ ] `web/templates/loans/{index.html,form.html,detail.html,schedule.html}`.
-- [ ] `internal/router/router.go`: route pinjaman dan jadwal.
-- [ ] `internal/service/*_test.go`: batas 3×, status, guard pinjaman terbuka, dan pencairan atomik.
+- [x] `internal/repository/loans.go`, `installments.go`.
+- [x] `internal/service/loans.go`: pengajuan, persetujuan, penolakan, dan pencairan.
+- [x] `internal/handler/loans.go`.
+- [x] `web/templates/loans/{index.html,form.html,detail.html,schedule.html}`.
+- [x] `internal/router/router.go`: route pinjaman dan jadwal.
+- [x] `internal/service/*_test.go`: batas 3×, status, guard pinjaman terbuka, dan pencairan atomik.
 
 1. Form menampilkan saldo pokok/wajib, batas 3×, nominal, tenor, dan simulasi dari domain.
 2. Simpan pengajuan dan jaga satu proses terbuka menggunakan lock serta unique index.

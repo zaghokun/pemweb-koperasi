@@ -1,0 +1,80 @@
+{{define "title"}}Setor Simpanan — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0">Formulir Setoran Simpanan</h5>
+            </div>
+            <div class="card-body p-4">
+                {{if .Error}}
+                <div class="alert alert-danger small">{{.Error}}</div>
+                {{end}}
+
+                <form method="POST" action="/savings">
+                    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+                    <input type="hidden" name="request_key" value="{{.RequestKey}}">
+
+                    <div class="mb-3">
+                        <label for="member_id" class="form-label small fw-semibold">ID Anggota</label>
+                        <input type="number" class="form-control" id="member_id" name="member_id" value="{{.MemberID}}" required placeholder="Contoh: 1">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="saving_type" class="form-label small fw-semibold">Jenis Simpanan</label>
+                        <select class="form-select" id="saving_type" name="saving_type" required onchange="toggleSavingFields()">
+                            <option value="WAJIB" {{if eq .SavingType "WAJIB"}}selected{{end}}>Simpanan Wajib (Rp100.000 / bulan)</option>
+                            <option value="SUKARELA" {{if eq .SavingType "SUKARELA"}}selected{{end}}>Simpanan Sukarela (Bebas)</option>
+                        </select>
+                        <small class="text-muted">Simpanan pokok hanya disetor sekali saat pendaftaran anggota.</small>
+                    </div>
+
+                    <div class="mb-3" id="period_group">
+                        <label for="period_month" class="form-label small fw-semibold">Periode Bulan Wajib</label>
+                        <input type="month" class="form-control" id="period_month" name="period_month" value="{{.PeriodMonth}}">
+                        <small class="text-muted">Setiap bulan keanggotaan hanya memiliki satu kewajiban simpanan wajib.</small>
+                    </div>
+
+                    <div class="mb-3" id="amount_group" style="display: none;">
+                        <label for="amount" class="form-label small fw-semibold">Nominal Setoran Sukarela (Rupiah)</label>
+                        <input type="number" class="form-control" id="amount" name="amount" value="{{.Amount}}" placeholder="Contoh: 50000">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="transaction_date" class="form-label small fw-semibold">Tanggal Pembayaran</label>
+                        <input type="date" class="form-control" id="transaction_date" name="transaction_date" value="{{.TransactionDate}}" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label small fw-semibold">Keterangan (Opsional)</label>
+                        <input type="text" class="form-control" id="description" name="description" value="{{.Description}}">
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="/savings" class="btn btn-secondary">Batal</a>
+                        <button type="submit" class="btn btn-success fw-semibold">Simpan Setoran</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleSavingFields() {
+    var type = document.getElementById("saving_type").value;
+    var periodGroup = document.getElementById("period_group");
+    var amountGroup = document.getElementById("amount_group");
+    if (type === "WAJIB") {
+        periodGroup.style.display = "block";
+        amountGroup.style.display = "none";
+    } else {
+        periodGroup.style.display = "none";
+        amountGroup.style.display = "block";
+    }
+}
+// Jalankan saat pertama kali dimuat
+toggleSavingFields();
+</script>
+{{end}}

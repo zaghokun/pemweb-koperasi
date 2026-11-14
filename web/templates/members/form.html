@@ -1,0 +1,61 @@
+{{define "title"}}{{if .IsEdit}}Edit Anggota{{else}}Daftar Anggota Baru{{end}} — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0">{{if .IsEdit}}Ubah Identitas Anggota{{else}}Formulir Pendaftaran Anggota Baru{{end}}</h5>
+            </div>
+            <div class="card-body p-4">
+                {{if .Error}}
+                <div class="alert alert-danger small">{{.Error}}</div>
+                {{end}}
+
+                <form method="POST" action="{{if .IsEdit}}/members/{{.MemberID}}/edit{{else}}/members{{end}}">
+                    <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="member_number" class="form-label small fw-semibold">Nomor Anggota</label>
+                            <input type="text" class="form-control" id="member_number" name="member_number" value="{{.MemberNumber}}" {{if .IsEdit}}readonly disabled{{else}}required{{end}}>
+                            {{if not .IsEdit}}<small class="text-muted">Nomor unik keanggotaan (tidak dapat diubah kelak).</small>{{end}}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="name" class="form-label small fw-semibold">Nama Lengkap</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{.Name}}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="address" class="form-label small fw-semibold">Alamat</label>
+                        <textarea class="form-control" id="address" name="address" rows="2" required>{{.Address}}</textarea>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label small fw-semibold">Nomor Telepon</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{.Phone}}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="join_date" class="form-label small fw-semibold">Tanggal Masuk</label>
+                            <input type="date" class="form-control" id="join_date" name="join_date" value="{{.JoinDate}}" {{if .IsEdit}}readonly disabled{{else}}required{{end}}>
+                        </div>
+                    </div>
+
+                    {{if not .IsEdit}}
+                    <div class="alert alert-info small mb-4">
+                        <strong>Ketentuan Simpanan Pokok:</strong> Pendaftaran anggota baru akan otomatis mencatat setoran simpanan pokok sebesar <strong>Rp500.000</strong> secara atomik.
+                    </div>
+                    {{end}}
+
+                    <div class="d-flex justify-content-between">
+                        <a href="/members{{if .IsEdit}}/{{.MemberID}}{{end}}" class="btn btn-secondary">Batal</a>
+                        <button type="submit" class="btn btn-primary fw-semibold">{{if .IsEdit}}Simpan Perubahan{{else}}Daftarkan & Setor Pokok{{end}}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
