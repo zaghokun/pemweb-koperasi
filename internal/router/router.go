@@ -55,6 +55,11 @@ func New(h *handler.Handler, authSvc *service.AuthService, cookieSecure bool, st
 	mux.Handle("POST /loans/{id}/disburse", middleware.RequireAuth(http.HandlerFunc(h.DisburseLoan)))
 	mux.Handle("GET /loans/{id}/installments", middleware.RequireAuth(http.HandlerFunc(h.ShowSchedule)))
 
+	// Payment routes (Tahap 6)
+	mux.Handle("GET /loans/{id}/payments/new", middleware.RequireAuth(http.HandlerFunc(h.ShowNewPayment)))
+	mux.Handle("POST /loans/{id}/payments", middleware.RequireAuth(http.HandlerFunc(h.CreatePayment)))
+	mux.Handle("GET /payments/{id}/receipt", middleware.RequireAuth(http.HandlerFunc(h.ShowPaymentReceipt)))
+
 	// Terapkan stack middleware global: CSRF protection -> Session loader
 	// Urutan eksekusi: SessionMiddleware berjalan lebih dahulu agar context berisi sesi & user,
 	// kemudian RequireCSRF memeriksa token jika method POST/PUT/DELETE.
