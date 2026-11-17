@@ -89,11 +89,17 @@ func setupTestApp(t *testing.T) (http.Handler, *mockUserRepo, *mockSessionRepo) 
 	savingRepo := repository.NewSavingRepository()
 	loanRepo := repository.NewLoanRepository()
 	installmentRepo := repository.NewInstallmentRepository()
+	paymentRepo := repository.NewPaymentRepository()
 	memberSvc := service.NewMemberService(nil, memberRepo, savingRepo, loanRepo)
 	savingSvc := service.NewSavingService(nil, savingRepo, memberRepo)
 	loanSvc := service.NewLoanService(nil, loanRepo, installmentRepo, memberRepo, savingRepo)
+	paymentSvc := service.NewPaymentService(nil, paymentRepo, loanRepo, installmentRepo, memberRepo)
+	settlementRepo := repository.NewSettlementRepository()
+	reportRepo := repository.NewReportRepository()
+	settlementSvc := service.NewSettlementService(nil, settlementRepo, loanRepo, installmentRepo, paymentRepo, memberRepo)
+	reportSvc := service.NewReportService(nil, reportRepo, loanRepo, installmentRepo, paymentRepo, memberRepo, settlementRepo)
 
-	h, err := handler.NewHandler(authSvc, memberSvc, savingSvc, loanSvc, false, templatesDir)
+	h, err := handler.NewHandler(authSvc, memberSvc, savingSvc, loanSvc, paymentSvc, settlementSvc, reportSvc, false, templatesDir)
 	if err != nil {
 		t.Fatalf("failed to create handler: %v", err)
 	}

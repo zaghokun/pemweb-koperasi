@@ -1,0 +1,84 @@
+{{define "title"}}Kuitansi Pelunasan Dipercepat #{{.Receipt.Payment.ID}} — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="mb-3 d-print-none d-flex justify-content-between align-items-center">
+    <a href="/loans/{{.Receipt.Loan.ID}}" class="btn btn-outline-secondary btn-sm">&larr; Kembali ke Detail Pinjaman</a>
+    <button onclick="window.print()" class="btn btn-primary btn-sm">Cetak Kuitansi</button>
+</div>
+
+<div class="card border-0 shadow-sm mx-auto" style="max-width: 800px;">
+    <div class="card-body p-5">
+        <div class="border-bottom pb-4 mb-4 text-center">
+            <h3 class="fw-bold mb-1">KOPERASI KARYAWAN SEJAHTERA</h3>
+            <p class="text-muted small mb-0">Bukti Pembayaran & Pelunasan Dipercepat Pinjaman</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-6">
+                <table class="table table-sm table-borderless small">
+                    <tr><td class="text-muted" style="width: 40%">No. Kuitansi</td><td class="fw-bold">#PAY-SETTLE-{{.Receipt.Payment.ID}}</td></tr>
+                    <tr><td class="text-muted">Tanggal Bayar</td><td>{{formatDate .Receipt.Payment.PaymentDate}}</td></tr>
+                    <tr><td class="text-muted">No. Pinjaman</td><td>#{{.Receipt.Loan.ID}}</td></tr>
+                    <tr><td class="text-muted">Status Pinjaman</td><td><span class="badge bg-success">LUNAS (SETTLED)</span></td></tr>
+                </table>
+            </div>
+            <div class="col-6">
+                <table class="table table-sm table-borderless small">
+                    <tr><td class="text-muted" style="width: 40%">No. Anggota</td><td class="fw-bold">{{.Receipt.Member.MemberNumber}}</td></tr>
+                    <tr><td class="text-muted">Nama Peminjam</td><td class="fw-semibold">{{.Receipt.Member.Name}}</td></tr>
+                    <tr><td class="text-muted">Telepon</td><td>{{.Receipt.Member.Phone}}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3 border-bottom pb-2">Rincian Komponen Pelunasan</h6>
+        <table class="table table-sm mb-4">
+            <thead class="table-light">
+                <tr>
+                    <th>Komponen</th>
+                    <th class="text-end">Nominal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if gt .Receipt.Settlement.ArrearsAmount 0}}
+                <tr>
+                    <td>Penyelesaian Tunggakan (Pokok, Jasa, & Denda Lewat Jatuh Tempo)</td>
+                    <td class="text-end fw-semibold text-danger">{{formatRupiah .Receipt.Settlement.ArrearsAmount}}</td>
+                </tr>
+                {{end}}
+                <tr>
+                    <td>Sisa Pokok Pinjaman (P_sisa)</td>
+                    <td class="text-end fw-semibold">{{formatRupiah .Receipt.Settlement.RemainingPrincipal}}</td>
+                </tr>
+                <tr>
+                    <td>Jasa Bulan Berjalan</td>
+                    <td class="text-end fw-semibold">{{formatRupiah .Receipt.Settlement.CurrentInterest}}</td>
+                </tr>
+                <tr>
+                    <td>Biaya Administrasi Pelunasan (2% Sisa Pokok)</td>
+                    <td class="text-end fw-semibold">{{formatRupiah .Receipt.Settlement.AdministrationFee}}</td>
+                </tr>
+                <tr class="table-success fw-bold">
+                    <td>TOTAL UANG DITERIMA</td>
+                    <td class="text-end fs-5">{{formatRupiah .Receipt.Payment.Amount}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="alert alert-light border small text-muted mb-4">
+            <strong>Catatan:</strong> Total jasa bulan-bulan mendatang sebesar <strong>{{formatRupiah .Receipt.Settlement.WaivedInterest}}</strong> telah <strong>dibebaskan</strong> dan tidak ditagihkan kepada anggota.
+        </div>
+
+        <div class="row mt-5 pt-4 text-center">
+            <div class="col-6">
+                <p class="small text-muted mb-5">Peminjam,</p>
+                <p class="fw-semibold mb-0">({{.Receipt.Member.Name}})</p>
+            </div>
+            <div class="col-6">
+                <p class="small text-muted mb-5">Pengurus Penerima,</p>
+                <p class="fw-semibold mb-0">( Koperasi Sejahtera )</p>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

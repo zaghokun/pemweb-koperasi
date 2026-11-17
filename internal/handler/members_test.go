@@ -185,7 +185,7 @@ func setupStage5App(t *testing.T) (http.Handler, *mockUserRepo, *mockMemberRepo,
 	templatesDir := filepath.Join("..", "..", "web", "templates")
 	staticDir := filepath.Join("..", "..", "web", "static")
 
-	h, err := handler.NewHandler(authSvc, nil, nil, nil, false, templatesDir)
+	h, err := handler.NewHandler(authSvc, nil, nil, nil, nil, nil, nil, false, templatesDir)
 	if err != nil {
 		t.Fatalf("failed to create handler: %v", err)
 	}
@@ -208,6 +208,17 @@ func TestStage5RoutesProtected(t *testing.T) {
 		"/savings/new",
 		"/savings/withdrawals/new",
 		"/savings/1/receipt",
+		"/loans",
+		"/loans/new",
+		"/loans/1",
+		"/loans/1/installments",
+		"/loans/1/payments/new",
+		"/payments/1/receipt",
+		"/loans/1/settlement",
+		"/settlements/1/receipt",
+		"/reports/loans/1",
+		"/reports/arrears",
+		"/reports/monthly",
 	}
 
 	for _, p := range protectedPaths {

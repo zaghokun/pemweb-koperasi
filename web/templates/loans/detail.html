@@ -21,11 +21,13 @@
         {{else if eq .Detail.Loan.Status "ACTIVE"}}
             <span class="badge bg-success p-2">AKTIF BERJALAN</span>
             <a href="/loans/{{.Detail.Loan.ID}}/installments" class="btn btn-primary btn-sm">Lihat Jadwal Angsuran</a>
+            <a href="/reports/loans/{{.Detail.Loan.ID}}" class="btn btn-outline-info btn-sm">Kartu Pinjaman</a>
             <a href="/loans/{{.Detail.Loan.ID}}/payments/new" class="btn btn-warning btn-sm">+ Terima Pembayaran</a>
             <a href="/loans/{{.Detail.Loan.ID}}/settlement" class="btn btn-outline-primary btn-sm">Pelunasan Dipercepat</a>
         {{else if eq .Detail.Loan.Status "SETTLED"}}
             <span class="badge bg-secondary p-2">LUNAS (SETTLED)</span>
             <a href="/loans/{{.Detail.Loan.ID}}/installments" class="btn btn-outline-secondary btn-sm">Lihat Jadwal Historis</a>
+            <a href="/reports/loans/{{.Detail.Loan.ID}}" class="btn btn-outline-info btn-sm">Kartu Pinjaman</a>
         {{else if eq .Detail.Loan.Status "REJECTED"}}
             <span class="badge bg-danger p-2">DITOLAK / DIBATALKAN</span>
         {{end}}

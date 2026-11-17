@@ -1,0 +1,90 @@
+{{define "title"}}Pratinjau Pelunasan Dipercepat Pinjaman #{{.Preview.Loan.ID}} — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="/loans/{{.Preview.Loan.ID}}" class="btn btn-sm btn-outline-secondary mb-2">&larr; Kembali ke Detail Pinjaman</a>
+        <h2 class="h4 fw-bold mb-0">Pelunasan Dipercepat — Pinjaman #{{.Preview.Loan.ID}}</h2>
+        <span class="text-muted small">Peminjam: <strong>{{.Preview.Member.Name}}</strong> (No. Anggota: {{.Preview.Member.MemberNumber}})</span>
+    </div>
+</div>
+
+<!-- Form Pemilihan Tanggal Perhitungan -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="/loans/{{.Preview.Loan.ID}}/settlement" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="date" class="form-label small fw-semibold">Tanggal Rencana Pelunasan</label>
+                <input type="date" class="form-control" id="date" name="date" value="{{.TargetDate}}" required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-outline-primary">Hitung Ulang Pratinjau</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Rincian Tahap 1: Penyelesaian Tunggakan (jika ada) -->
+    {{if gt .Preview.Breakdown.ArrearsAmount 0}}
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm border-start border-danger border-4 h-100">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold text-danger mb-0">Tahap 1: Penyelesaian Tunggakan Lewat Jatuh Tempo</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Angsuran yang telah lewat jatuh tempo sebelum tanggal pelunasan dilunasi penuh terlebih dahulu (pokok, jasa, dan denda).</p>
+                <table class="table table-sm table-borderless">
+                    <tr><td class="text-muted">Total Pembayaran Tunggakan</td><td class="text-end fw-bold text-danger">{{formatRupiah .Preview.Breakdown.ArrearsAmount}}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- Rincian Tahap 2: Bagian Pelunasan Dipercepat -->
+    <div class="{{if gt .Preview.Breakdown.ArrearsAmount 0}}col-md-6{{else}}col-md-12{{end}}">
+        <div class="card border-0 shadow-sm border-start border-primary border-4 h-100">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold text-primary mb-0">Tahap 2: Bagian Pelunasan Dipercepat</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Sesuai BR-13: Sisa Pokok + Jasa 1 Bulan Berjalan + Biaya Administrasi (2% dari Sisa Pokok).</p>
+                <table class="table table-sm table-borderless">
+                    <tr><td class="text-muted">Sisa Pokok (P_sisa)</td><td class="text-end fw-semibold">{{formatRupiah .Preview.Breakdown.RemainingPrincipal}}</td></tr>
+                    <tr><td class="text-muted">Jasa Bulan Berjalan (Periode {{.Preview.Breakdown.CurrentInstallmentNumber}})</td><td class="text-end fw-semibold">{{formatRupiah .Preview.Breakdown.CurrentInterest}}</td></tr>
+                    <tr><td class="text-muted">Biaya Administrasi Pelunasan (2%)</td><td class="text-end fw-semibold">{{formatRupiah .Preview.Breakdown.AdministrationFee}}</td></tr>
+                    <tr class="border-top"><td class="fw-bold">Subtotal Pelunasan</td><td class="text-end fw-bold text-primary">{{formatRupiah .Preview.Breakdown.SettlementAmount}}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ringkasan Total & Eksekusi Pembayaran -->
+<div class="card border-0 shadow-sm border-top border-success border-4 mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold text-success mb-1">Total Uang yang Harus Diterima</h4>
+                <div class="text-muted small">Jasa bulan-bulan berikutnya yang dibebaskan (tidak ditagihkan): <strong class="text-success">{{formatRupiah .Preview.Breakdown.WaivedInterest}}</strong></div>
+            </div>
+            <div class="text-end">
+                <span class="display-6 fw-bold text-success">{{formatRupiah .Preview.Breakdown.TotalReceived}}</span>
+            </div>
+        </div>
+
+        <form method="POST" action="/loans/{{.Preview.Loan.ID}}/settlement" class="mt-4 pt-3 border-top">
+            <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+            <input type="hidden" name="settlement_date" value="{{.TargetDate}}">
+            <input type="hidden" name="confirmed_amount" value="{{.Preview.Breakdown.TotalReceived}}">
+            <input type="hidden" name="request_key" value="{{.RequestKey}}">
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="/loans/{{.Preview.Loan.ID}}" class="btn btn-secondary">Batal</a>
+                <button type="submit" class="btn btn-success fw-bold px-4">Terima Uang & Lunasi Pinjaman</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}

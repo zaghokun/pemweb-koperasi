@@ -57,3 +57,16 @@ type InstallmentBalance struct {
 	InterestPaid  int64
 	PenaltyPaid   int64
 }
+
+// LoanSettlement mirrors the loan_settlements table (Bagian 7 & 9).
+type LoanSettlement struct {
+	ID                   int64
+	LoanID               int64
+	PaymentID            int64
+	CurrentInstallmentID int64
+	ArrearsAmount        int64
+	RemainingPrincipal   int64
+	CurrentInterest      int64
+	AdministrationFee    int64
+	WaivedInterest       int64
+}

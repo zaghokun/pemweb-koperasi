@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bufio"
 	"errors"
 	"net"
 	"os"
@@ -28,8 +29,38 @@ type Config struct {
 }
 
 // Load membaca konfigurasi dari environment variable proses.
+// Jika file .env ada di direktori kerja, nilainya akan otomatis dimuat ke environment proses.
 func Load() (*Config, error) {
+	loadDotEnv(".env")
 	return LoadFrom(os.Getenv)
+}
+
+func loadDotEnv(filepath string) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		line = strings.TrimPrefix(line, "$env:")
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			val := strings.TrimSpace(parts[1])
+			if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
+				val = val[1 : len(val)-1]
+			}
+			if os.Getenv(key) == "" {
+				_ = os.Setenv(key, val)
+			}
+		}
+	}
 }
 
 // LoadFrom membaca dan memvalidasi konfigurasi menggunakan fungsi pencarian env yang diberikan.

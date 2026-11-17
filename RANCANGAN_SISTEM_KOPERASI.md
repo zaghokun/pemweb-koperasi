@@ -995,12 +995,12 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist package/halaman:**
 
-- [ ] `internal/repository/payments.go` dan query kewajiban di `installments.go`.
-- [ ] `internal/service/payments.go`: transaksi, alokasi, penutupan, dan idempotensi.
-- [ ] `internal/handler/payments.go`.
-- [ ] `web/templates/payments/{form.html,receipt.html}`.
-- [ ] `internal/router/router.go`: form pembayaran, POST pembayaran, dan kuitansi.
-- [ ] `internal/service/*_test.go`: pembayaran sebagian, rollback, dan POST ganda pada MySQL.
+- [x] `internal/repository/payments.go` dan query kewajiban di `installments.go`.
+- [x] `internal/service/payments.go`: transaksi, alokasi, penutupan, dan idempotensi.
+- [x] `internal/handler/payments.go`.
+- [x] `web/templates/payments/{form.html,receipt.html}`.
+- [x] `internal/router/router.go`: form pembayaran, POST pembayaran, dan kuitansi.
+- [x] `internal/service/*_test.go`: pembayaran sebagian, rollback, dan POST ganda pada MySQL.
 
 1. Ambil snapshot angsuran dan alokasi sampai tanggal bayar melalui transaksi.
 2. Panggil kalkulator domain untuk denda dan alokasi; jangan menulis formula kedua di SQL/handler.
@@ -1016,12 +1016,12 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist package/halaman:**
 
-- [ ] `internal/repository/settlements.go` dan operasi pembebasan pada `installments.go`.
-- [ ] `internal/service/settlements.go`: preview dan commit memakai perhitungan pembayaran yang sama.
-- [ ] `internal/handler/settlements.go`.
-- [ ] `web/templates/settlements/{preview.html,receipt.html}`.
-- [ ] `internal/router/router.go`: preview dan POST pelunasan.
-- [ ] `internal/service/*_test.go`: tiga contoh pelunasan, snapshot usang, dan jasa tidak ditagih ganda.
+- [x] `internal/repository/settlements.go` dan operasi pembebasan pada `installments.go`.
+- [x] `internal/service/settlements.go`: preview dan commit memakai perhitungan pembayaran yang sama.
+- [x] `internal/handler/settlements.go`.
+- [x] `web/templates/settlements/{preview.html,receipt.html}`.
+- [x] `internal/router/router.go`: preview dan POST pelunasan.
+- [x] `internal/service/*_test.go`: tiga contoh pelunasan, snapshot usang, dan jasa tidak ditagih ganda.
 
 1. Gunakan helper perhitungan dan alokasi pembayaran yang sama dengan tahap 7; jangan membuat jalur pembayaran terpisah yang melewati validasi.
 2. GET menghitung pratinjau tanpa simpan data.
@@ -1037,13 +1037,13 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist package/halaman:**
 
-- [ ] `internal/repository/reports.go`: kartu, tunggakan, dan agregat penerimaan.
-- [ ] `internal/service/reports.go`: keadaan historis dan rekonsiliasi.
-- [ ] `internal/handler/reports.go`, `dashboard.go`.
-- [ ] `web/templates/reports/{loan_card.html,arrears.html,monthly.html}`.
-- [ ] `web/templates/dashboard/index.html` dan CSS cetak di `web/static/css`.
-- [ ] `internal/router/router.go`: dashboard dan laporan.
-- [ ] `internal/service/*_test.go`: penerimaan biasa/pelunasan, tanggal historis, dan join tanpa duplikasi.
+- [x] `internal/repository/reports.go`: kartu, tunggakan, dan agregat penerimaan.
+- [x] `internal/service/reports.go`: keadaan historis dan rekonsiliasi.
+- [x] `internal/handler/reports.go`, `dashboard.go`.
+- [x] `web/templates/reports/{loan_card.html,arrears.html,monthly.html}`.
+- [x] `web/templates/dashboard/index.html` dan CSS cetak di `web/static/css`.
+- [x] `internal/router/router.go`: dashboard dan laporan.
+- [x] `internal/service/*_test.go`: penerimaan biasa/pelunasan, tanggal historis, dan join tanpa duplikasi.
 
 1. Implementasikan kartu pinjaman beserta histori alokasi dan pembebasan.
 2. Implementasikan tunggakan dengan tanggal laporan, bukan hanya keadaan hari ini atau keterlambatan >30 hari.
@@ -1057,11 +1057,11 @@ DDL MySQL melakukan implicit commit; jangan menganggap seluruh migration dapat d
 
 **Checklist verifikasi lintas package:**
 
-- [ ] `internal/domain`: unit test perhitungan lulus.
-- [ ] `internal/repository` + `internal/service`: integration test pada TEST_DATABASE_DSN MySQL lulus.
-- [ ] `internal/middleware`, `internal/handler`, `internal/router`, `cmd/server`: alur sesi dan HTTP nyata terverifikasi.
-- [ ] `web/templates` + `web/static`: pembayaran sebagian, kuitansi, akses keyboard, dan print terverifikasi di browser.
-- [ ] `migrations`: instalasi pada database kosong serta CHECK/unique guard benar-benar menolak data tidak sah.
+- [x] `internal/domain`: unit test perhitungan lulus.
+- [x] `internal/repository` + `internal/service`: integration test pada TEST_DATABASE_DSN MySQL lulus.
+- [x] `internal/middleware`, `internal/handler`, `internal/router`, `cmd/server`: alur sesi dan HTTP nyata terverifikasi.
+- [x] `web/templates` + `web/static`: pembayaran sebagian, kuitansi, akses keyboard, dan print terverifikasi di browser.
+- [x] `migrations`: instalasi pada database kosong serta CHECK/unique guard benar-benar menolak data tidak sah.
 - [ ] Operasional: backup mysqldump dan restore ke database terpisah teruji.
 - [ ] Data awal: histori buku/spreadsheet direkonsiliasi bila akan dipindahkan.
 - [ ] `README.md`: setup, MySQL lokal, migration, akun, test, backup/restore, dan kebijakan diperbarui.

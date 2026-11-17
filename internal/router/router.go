@@ -55,10 +55,20 @@ func New(h *handler.Handler, authSvc *service.AuthService, cookieSecure bool, st
 	mux.Handle("POST /loans/{id}/disburse", middleware.RequireAuth(http.HandlerFunc(h.DisburseLoan)))
 	mux.Handle("GET /loans/{id}/installments", middleware.RequireAuth(http.HandlerFunc(h.ShowSchedule)))
 
-	// Payment routes (Tahap 6)
+	// Rute Pembayaran Angsuran (Tahap 7)
 	mux.Handle("GET /loans/{id}/payments/new", middleware.RequireAuth(http.HandlerFunc(h.ShowNewPayment)))
 	mux.Handle("POST /loans/{id}/payments", middleware.RequireAuth(http.HandlerFunc(h.CreatePayment)))
 	mux.Handle("GET /payments/{id}/receipt", middleware.RequireAuth(http.HandlerFunc(h.ShowPaymentReceipt)))
+
+	// Rute Pelunasan Dipercepat (Tahap 8)
+	mux.Handle("GET /loans/{id}/settlement", middleware.RequireAuth(http.HandlerFunc(h.ShowSettlementPreview)))
+	mux.Handle("POST /loans/{id}/settlement", middleware.RequireAuth(http.HandlerFunc(h.ProcessSettlement)))
+	mux.Handle("GET /settlements/{id}/receipt", middleware.RequireAuth(http.HandlerFunc(h.ShowSettlementReceipt)))
+
+	// Rute Laporan (Tahap 9)
+	mux.Handle("GET /reports/loans/{id}", middleware.RequireAuth(http.HandlerFunc(h.ShowLoanCard)))
+	mux.Handle("GET /reports/arrears", middleware.RequireAuth(http.HandlerFunc(h.ShowArrearsReport)))
+	mux.Handle("GET /reports/monthly", middleware.RequireAuth(http.HandlerFunc(h.ShowMonthlyIncomeReport)))
 
 	// Terapkan stack middleware global: CSRF protection -> Session loader
 	// Urutan eksekusi: SessionMiddleware berjalan lebih dahulu agar context berisi sesi & user,

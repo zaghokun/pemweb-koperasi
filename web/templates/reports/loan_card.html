@@ -1,0 +1,122 @@
+{{define "title"}}Kartu Pinjaman #{{.Card.Loan.ID}} — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="mb-3 d-print-none d-flex justify-content-between align-items-center">
+    <div>
+        <a href="/loans/{{.Card.Loan.ID}}" class="btn btn-outline-secondary btn-sm mb-1">&larr; Kembali ke Detail Pinjaman</a>
+        <h2 class="h4 fw-bold mb-0">Kartu Pinjaman #{{.Card.Loan.ID}}</h2>
+    </div>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-primary btn-sm">Cetak Kartu Pinjaman</button>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless small mb-0">
+                    <tr><td class="text-muted" style="width: 40%">No. Pinjaman</td><td class="fw-bold">#{{.Card.Loan.ID}}</td></tr>
+                    <tr><td class="text-muted">No. Anggota</td><td class="fw-bold">{{.Card.Member.MemberNumber}}</td></tr>
+                    <tr><td class="text-muted">Nama Peminjam</td><td class="fw-semibold">{{.Card.Member.Name}}</td></tr>
+                    <tr><td class="text-muted">Telepon / Alamat</td><td>{{.Card.Member.Phone}} — {{.Card.Member.Address}}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless small mb-0">
+                    <tr><td class="text-muted" style="width: 40%">Pokok Pinjaman Awal</td><td class="fw-bold text-primary">{{formatRupiah .Card.Loan.Principal}}</td></tr>
+                    <tr><td class="text-muted">Tenor Angsuran</td><td>{{.Card.Loan.TenorMonths}} bulan (Jasa 1% flat: {{formatRupiah (div (mul .Card.Loan.Principal 1) 100)}}/bln)</td></tr>
+                    <tr><td class="text-muted">Tanggal Pencairan</td><td>{{if .Card.Loan.DisbursementDate}}{{formatDate .Card.Loan.DisbursementDate}}{{else}}-{{end}}</td></tr>
+                    <tr><td class="text-muted">Status Pinjaman</td><td>
+                        {{if eq .Card.Loan.Status "ACTIVE"}}<span class="badge bg-success">AKTIF</span>
+                        {{else if eq .Card.Loan.Status "SETTLED"}}<span class="badge bg-secondary">LUNAS (SETTLED)</span>
+                        {{else}}<span class="badge bg-warning text-dark">{{.Card.Loan.Status}}</span>{{end}}
+                    </td></tr>
+                </table>
+            </div>
+        </div>
+
+        <h6 class="fw-bold border-bottom pb-2 mb-3">Jadwal Angsuran & Status Pembayaran</h6>
+        <div class="table-responsive mb-4">
+            <table class="table table-sm table-hover align-middle small">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center">Ke-</th>
+                        <th>Jatuh Tempo</th>
+                        <th class="text-end">Pokok</th>
+                        <th class="text-end">Jasa</th>
+                        <th class="text-end">Denda Dibayar</th>
+                        <th class="text-end">Pokok Dibayar</th>
+                        <th class="text-end">Jasa Dibayar</th>
+                        <th class="text-end">Jasa Dibebaskan</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Card.Balances}}
+                    <tr {{if .Installment.ClosedOn}}class="table-light text-muted"{{end}}>
+                        <td class="text-center fw-bold">{{.Installment.InstallmentNumber}}</td>
+                        <td>{{formatDate .Installment.DueDate}}</td>
+                        <td class="text-end">{{formatRupiah .Installment.PrincipalDue}}</td>
+                        <td class="text-end">{{formatRupiah .Installment.InterestDue}}</td>
+                        <td class="text-end">{{if gt .PenaltyPaid 0}}{{formatRupiah .PenaltyPaid}}{{else}}-{{end}}</td>
+                        <td class="text-end">{{if gt .PrincipalPaid 0}}{{formatRupiah .PrincipalPaid}}{{else}}-{{end}}</td>
+                        <td class="text-end">{{if gt .InterestPaid 0}}{{formatRupiah .InterestPaid}}{{else}}-{{end}}</td>
+                        <td class="text-end">{{if gt .Installment.InterestWaived 0}}<span class="text-success">{{formatRupiah .Installment.InterestWaived}}</span>{{else}}-{{end}}</td>
+                        <td class="text-center">
+                            {{if .Installment.ClosedOn}}
+                                <span class="badge bg-secondary">Lunas ({{formatDate .Installment.ClosedOn}})</span>
+                            {{else}}
+                                <span class="badge bg-warning text-dark">Belum Lunas</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <h6 class="fw-bold border-bottom pb-2 mb-3">Histori Penerimaan Pembayaran</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle small">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID Transaksi</th>
+                        <th>Tanggal Bayar</th>
+                        <th>Jenis Pembayaran</th>
+                        <th class="text-end">Total Uang Diterima</th>
+                        <th class="text-center d-print-none">Kuitansi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{if .Card.Payments}}
+                        {{range .Card.Payments}}
+                        <tr>
+                            <td>#PAY-{{.ID}}</td>
+                            <td>{{formatDate .PaymentDate}}</td>
+                            <td>
+                                {{if eq .PaymentType "EARLY_SETTLEMENT"}}
+                                    <span class="badge bg-primary">Pelunasan Dipercepat</span>
+                                {{else}}
+                                    <span class="badge bg-info text-dark">Angsuran Reguler</span>
+                                {{end}}
+                            </td>
+                            <td class="text-end fw-bold">{{formatRupiah .Amount}}</td>
+                            <td class="text-center d-print-none">
+                                {{if eq .PaymentType "EARLY_SETTLEMENT"}}
+                                    <a href="/settlements/{{.ID}}/receipt" class="btn btn-xs btn-outline-primary py-0 px-2">Kuitansi</a>
+                                {{else}}
+                                    <a href="/payments/{{.ID}}/receipt" class="btn btn-xs btn-outline-secondary py-0 px-2">Kuitansi</a>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{end}}
+                    {{else}}
+                        <tr><td colspan="5" class="text-center text-muted py-3">Belum ada riwayat pembayaran yang tercatat.</td></tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{{end}}

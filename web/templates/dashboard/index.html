@@ -4,40 +4,114 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="h4 fw-bold mb-1">Dashboard Pengurus</h2>
-        <p class="text-muted small mb-0">Selamat datang, {{.User.Name}} ({{.User.Username}})</p>
+        <p class="text-muted small mb-0">Selamat datang, <strong>{{.User.Name}}</strong> ({{.User.Username}})</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/members/new" class="btn btn-primary btn-sm">+ Tambah Anggota</a>
+        <a href="/savings/new" class="btn btn-success btn-sm">+ Setor Simpanan</a>
+        <a href="/loans/new" class="btn btn-warning btn-sm">+ Ajukan Pinjaman</a>
     </div>
 </div>
 
-<div class="row g-3">
-    <div class="col-md-3 mb-3">
-        <div class="card border-0 shadow-sm">
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <span class="text-muted small">Total Anggota Aktif</span>
-                <h3 class="fw-bold text-primary mt-2 mb-0">{{.TotalMembers}}</h3>
+                <span class="text-muted small fw-semibold">Total Anggota Aktif</span>
+                <h3 class="fw-bold text-primary mt-2 mb-0">{{.Stats.ActiveMemberCount}}</h3>
+                <a href="/members" class="small text-decoration-none mt-2 d-inline-block">Lihat Anggota &rarr;</a>
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card border-0 shadow-sm">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <span class="text-muted small">Total Simpanan</span>
-                <h3 class="fw-bold text-success mt-2 mb-0">{{.TotalSavingsFormatted}}</h3>
+                <span class="text-muted small fw-semibold">Total Saldo Simpanan</span>
+                <h3 class="fw-bold text-success mt-2 mb-0">{{formatRupiah .Stats.TotalSavings}}</h3>
+                <a href="/savings" class="small text-decoration-none mt-2 d-inline-block">Lihat Simpanan &rarr;</a>
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card border-0 shadow-sm">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <span class="text-muted small">Pinjaman Aktif</span>
-                <h3 class="fw-bold text-warning mt-2 mb-0">{{.ActiveLoansCount}}</h3>
+                <span class="text-muted small fw-semibold">Pinjaman Aktif</span>
+                <h3 class="fw-bold text-warning mt-2 mb-0">{{.Stats.ActiveLoanCount}}</h3>
+                <div class="text-muted small mt-1">Pokok: {{formatRupiah .Stats.ActiveLoanPrincipal}}</div>
+                <a href="/loans" class="small text-decoration-none mt-2 d-inline-block">Lihat Pinjaman &rarr;</a>
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card border-0 shadow-sm">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <span class="text-muted small">Total Tunggakan</span>
-                <h3 class="fw-bold text-danger mt-2 mb-0">{{.TotalArrearsFormatted}}</h3>
+                <span class="text-muted small fw-semibold">Pinjaman Menunggak</span>
+                <h3 class="fw-bold text-danger mt-2 mb-0">{{.Stats.ArrearsLoanCount}}</h3>
+                <a href="/reports/arrears" class="small text-danger text-decoration-none mt-2 d-inline-block">Daftar Tunggakan &rarr;</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Rekap Pendapatan Bulan Ini -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0">Pendapatan Bulan Berjalan</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless">
+                    <tr>
+                        <td class="text-muted">Pendapatan Jasa Pinjaman</td>
+                        <td class="text-end fw-bold text-dark">{{formatRupiah .Stats.CurrentMonthInterestIncome}}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Pendapatan Denda Keterlambatan</td>
+                        <td class="text-end fw-bold text-danger">{{formatRupiah .Stats.CurrentMonthPenaltyIncome}}</td>
+                    </tr>
+                    <tr class="border-top">
+                        <td class="fw-bold">Total Pendapatan Bulan Ini</td>
+                        <td class="text-end fw-bold text-success fs-5">{{formatRupiah (add .Stats.CurrentMonthInterestIncome .Stats.CurrentMonthPenaltyIncome)}}</td>
+                    </tr>
+                </table>
+                <div class="text-end mt-2">
+                    <a href="/reports/monthly" class="btn btn-outline-primary btn-sm">Lihat Rekap Kas Bulanan Lengkap &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Akses Cepat Laporan -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0">Menu Laporan & Informasi</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="/reports/monthly" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">Laporan Penerimaan Jasa & Denda Bulanan</div>
+                            <span class="text-muted small">Penerimaan kas riil bulanan dari jasa, denda, pokok, dan simpanan.</span>
+                        </div>
+                        <span class="text-primary">&rarr;</span>
+                    </a>
+                    <a href="/reports/arrears" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">Laporan Daftar Tunggakan Angsuran</div>
+                            <span class="text-muted small">Daftar pinjaman yang terlambat lewat tanggal jatuh tempo.</span>
+                        </div>
+                        <span class="text-danger">&rarr;</span>
+                    </a>
+                    <a href="/loans" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">Kartu Pinjaman Anggota</div>
+                            <span class="text-muted small">Buka pinjaman anggota mana saja untuk melihat kartu pinjaman dan mencetaknya.</span>
+                        </div>
+                        <span class="text-primary">&rarr;</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>

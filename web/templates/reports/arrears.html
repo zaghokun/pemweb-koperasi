@@ -1,0 +1,108 @@
+{{define "title"}}Daftar Anggota Menunggak — Koperasi Karyawan Sejahtera{{end}}
+
+{{define "content"}}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-0">Laporan Daftar Pinjaman Menunggak</h2>
+        <span class="text-muted small">Menampilkan angsuran aktif yang telah lewat jatuh tempo dan belum lunas (denda Rp2.000/hari).</span>
+    </div>
+    <div class="d-print-none d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-primary btn-sm">Cetak Laporan</button>
+    </div>
+</div>
+
+<!-- Filter Tanggal Perhitungan -->
+<div class="card border-0 shadow-sm mb-4 d-print-none">
+    <div class="card-body">
+        <form method="GET" action="/reports/arrears" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="as_of" class="form-label small fw-semibold">Posisi Tanggal Laporan</label>
+                <input type="date" class="form-control" id="as_of" name="as_of" value="{{.AsOfDate}}" required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary">Tampilkan Tunggakan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Ringkasan Tunggakan Global -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center bg-white">
+            <span class="text-muted small fw-semibold">Total Tunggakan Pokok</span>
+            <span class="fs-5 fw-bold text-dark mt-1">{{formatRupiah .TotalPrincipal}}</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center bg-white">
+            <span class="text-muted small fw-semibold">Total Tunggakan Jasa</span>
+            <span class="fs-5 fw-bold text-dark mt-1">{{formatRupiah .TotalInterest}}</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center bg-white">
+            <span class="text-muted small fw-semibold">Total Akumulasi Denda</span>
+            <span class="fs-5 fw-bold text-danger mt-1">{{formatRupiah .TotalPenalty}}</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 text-center bg-danger text-white">
+            <span class="small fw-semibold opacity-75">Grand Total Kewajiban Menunggak</span>
+            <span class="fs-5 fw-bold mt-1">{{formatRupiah .GrandTotal}}</span>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="table-light">
+                    <tr>
+                        <th>No. Pinjaman</th>
+                        <th>Anggota</th>
+                        <th>Telepon</th>
+                        <th class="text-center">Jml Angsuran</th>
+                        <th class="text-center">Hari Terlambat</th>
+                        <th class="text-end">Tunggakan Pokok</th>
+                        <th class="text-end">Tunggakan Jasa</th>
+                        <th class="text-end">Denda</th>
+                        <th class="text-end fw-bold">Total Tagihan</th>
+                        <th class="text-center d-print-none">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{if .Items}}
+                        {{range .Items}}
+                        <tr>
+                            <td><a href="/loans/{{.LoanID}}" class="fw-bold">#{{.LoanID}}</a></td>
+                            <td>
+                                <div><a href="/members/{{.MemberID}}" class="fw-semibold text-dark">{{.MemberName}}</a></div>
+                                <span class="text-muted small">{{.MemberNumber}}</span>
+                            </td>
+                            <td>{{.Phone}}</td>
+                            <td class="text-center"><span class="badge bg-warning text-dark">{{.OverdueInstallmentCount}} bln</span></td>
+                            <td class="text-center text-danger fw-bold">{{.MaxDaysOverdue}} hari</td>
+                            <td class="text-end">{{formatRupiah .PrincipalOverdue}}</td>
+                            <td class="text-end">{{formatRupiah .InterestOverdue}}</td>
+                            <td class="text-end text-danger fw-semibold">{{formatRupiah .PenaltyDue}}</td>
+                            <td class="text-end fw-bold text-danger">{{formatRupiah .TotalArrears}}</td>
+                            <td class="text-center d-print-none">
+                                <a href="/loans/{{.LoanID}}/payments/new" class="btn btn-xs btn-primary py-0 px-2">Bayar</a>
+                            </td>
+                        </tr>
+                        {{end}}
+                    {{else}}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                Tidak ada pinjaman yang menunggak pada tanggal {{.AsOfDate}}. Semua kewajiban lancar!
+                            </td>
+                        </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{{end}}

@@ -299,7 +299,7 @@ func (s *PaymentService) Pay(ctx context.Context, input PayInput) (*PayResult, e
 	}
 
 	// Alokasikan pembayaran dengan kalkulator domain murni (denda -> jasa -> pokok)
-	allocations, err := domain.AllocatePayment(obligations, input.Amount)
+	allocations, err := domain.AllocatePayment(input.Amount, obligations)
 	if err != nil {
 		return nil, err
 	}

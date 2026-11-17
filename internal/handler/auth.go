@@ -69,13 +69,3 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	middleware.ClearSessionCookie(w, h.cookieSecure)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
-
-// ShowDashboard menampilkan halaman ringkasan utama untuk pengurus yang telah login.
-func (h *Handler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
-	h.Render(w, r, "dashboard/index.html", map[string]any{
-		"TotalMembers":          0,
-		"TotalSavingsFormatted": "Rp0",
-		"ActiveLoansCount":      0,
-		"TotalArrearsFormatted": "Rp0",
-	})
-}

@@ -14,13 +14,15 @@ import (
 )
 
 type Handler struct {
-	authSvc      *service.AuthService
-	memberSvc    *service.MemberService
-	savingSvc    *service.SavingService
-	loanSvc      *service.LoanService
-	paymentSvc   *service.PaymentService
-	cookieSecure bool
-	templates    map[string]*template.Template
+	authSvc       *service.AuthService
+	memberSvc     *service.MemberService
+	savingSvc     *service.SavingService
+	loanSvc       *service.LoanService
+	paymentSvc    *service.PaymentService
+	settlementSvc *service.SettlementService
+	reportSvc     *service.ReportService
+	cookieSecure  bool
+	templates     map[string]*template.Template
 }
 
 // NewHandler membuat Handler baru dan memuat template HTML sekali saat startup.
@@ -30,6 +32,8 @@ func NewHandler(
 	savingSvc *service.SavingService,
 	loanSvc *service.LoanService,
 	paymentSvc *service.PaymentService,
+	settlementSvc *service.SettlementService,
+	reportSvc *service.ReportService,
 	cookieSecure bool,
 	templatesDir string,
 ) (*Handler, error) {
@@ -39,13 +43,15 @@ func NewHandler(
 	}
 
 	return &Handler{
-		authSvc:      authSvc,
-		memberSvc:    memberSvc,
-		savingSvc:    savingSvc,
-		loanSvc:      loanSvc,
-		paymentSvc:   paymentSvc,
-		cookieSecure: cookieSecure,
-		templates:    tmplMap,
+		authSvc:       authSvc,
+		memberSvc:     memberSvc,
+		savingSvc:     savingSvc,
+		loanSvc:       loanSvc,
+		paymentSvc:    paymentSvc,
+		settlementSvc: settlementSvc,
+		reportSvc:     reportSvc,
+		cookieSecure:  cookieSecure,
+		templates:     tmplMap,
 	}, nil
 }
 
@@ -83,6 +89,11 @@ func parseTemplates(rootDir string) (map[string]*template.Template, error) {
 		"loans/schedule.html",
 		"payments/form.html",
 		"payments/receipt.html",
+		"settlements/preview.html",
+		"settlements/receipt.html",
+		"reports/loan_card.html",
+		"reports/arrears.html",
+		"reports/monthly.html",
 	}
 
 	tmpls := make(map[string]*template.Template)
@@ -97,6 +108,31 @@ func parseTemplates(rootDir string) (map[string]*template.Template, error) {
 	}
 
 	return tmpls, nil
+}
+
+func (h *Handler) newTemplateData(r *http.Request) map[string]any {
+	data := make(map[string]any)
+	sess := middleware.SessionFromContext(r.Context())
+	user := middleware.UserFromContext(r.Context())
+	if user != nil {
+		data["User"] = user
+	}
+	if sess != nil {
+		data["CSRFToken"] = sess.CSRFToken
+	}
+	return data
+}
+
+func (h *Handler) render(w http.ResponseWriter, r *http.Request, name string, data map[string]any) {
+	h.Render(w, r, name, data)
+}
+
+func (h *Handler) renderNotFound(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
+}
+
+func (h *Handler) renderError(w http.ResponseWriter, r *http.Request, status int, msg string) {
+	http.Error(w, msg, status)
 }
 
 // Render mengeksekusi template dengan nama tertentu dan menyertakan konteks pengguna serta CSRF.

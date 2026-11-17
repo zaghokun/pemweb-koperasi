@@ -47,11 +47,17 @@ func main() {
 	savingRepo := repository.NewSavingRepository()
 	loanRepo := repository.NewLoanRepository()
 	installmentRepo := repository.NewInstallmentRepository()
+	paymentRepo := repository.NewPaymentRepository()
+	settlementRepo := repository.NewSettlementRepository()
+	reportRepo := repository.NewReportRepository()
 
 	authSvc := service.NewAuthService(db, userRepo, sessionRepo)
 	memberSvc := service.NewMemberService(db, memberRepo, savingRepo, loanRepo)
 	savingSvc := service.NewSavingService(db, savingRepo, memberRepo)
 	loanSvc := service.NewLoanService(db, loanRepo, installmentRepo, memberRepo, savingRepo)
+	paymentSvc := service.NewPaymentService(db, paymentRepo, loanRepo, installmentRepo, memberRepo)
+	settlementSvc := service.NewSettlementService(db, settlementRepo, loanRepo, installmentRepo, paymentRepo, memberRepo)
+	reportSvc := service.NewReportService(db, reportRepo, loanRepo, installmentRepo, paymentRepo, memberRepo, settlementRepo)
 
 	// Tentukan lokasi template dan static
 	workDir, err := os.Getwd()
@@ -61,7 +67,7 @@ func main() {
 	templatesDir := filepath.Join(workDir, "web", "templates")
 	staticDir := filepath.Join(workDir, "web", "static")
 
-	h, err := handler.NewHandler(authSvc, memberSvc, savingSvc, loanSvc, cfg.CookieSecure, templatesDir)
+	h, err := handler.NewHandler(authSvc, memberSvc, savingSvc, loanSvc, paymentSvc, settlementSvc, reportSvc, cfg.CookieSecure, templatesDir)
 	if err != nil {
 		log.Fatalf("Gagal memuat template HTML: %v", err)
 	}

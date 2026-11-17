@@ -54,14 +54,18 @@ func OpenWithConfig(ctx context.Context, rawDSN string, poolCfg PoolConfig) (*sq
 	cfg.MultiStatements = false
 	cfg.InterpolateParams = false
 
+	if cfg.Collation == "" {
+		cfg.Collation = "utf8mb4_0900_ai_ci"
+	}
+
 	if cfg.Params == nil {
 		cfg.Params = make(map[string]string)
 	}
 	cfg.Params["time_zone"] = "'+00:00'"
 	cfg.Params["foreign_key_checks"] = "1"
-	if _, ok := cfg.Params["charset"]; !ok {
-		cfg.Params["charset"] = "utf8mb4"
-	}
+	// Hapus 'charset' dari Params karena MySQL tidak memiliki variabel sistem bernama 'charset'.
+	// Charset/collation ditangani oleh driver via SET NAMES melalui cfg.Collation.
+	delete(cfg.Params, "charset")
 
 	connector, err := mysql.NewConnector(cfg)
 	if err != nil {
