@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -12,6 +13,40 @@ import (
 	"koperasi/internal/middleware"
 	"koperasi/internal/service"
 )
+
+const listPageSize = 20
+
+func listPage(r *http.Request) int {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 || page > math.MaxInt/listPageSize {
+		return 1
+	}
+	return page
+}
+
+type pageLinks struct {
+	Page     int
+	Pages    int
+	Previous string
+	Next     string
+}
+
+func pagination(r *http.Request, page, total int) pageLinks {
+	pages := max(1, (total-1)/listPageSize+1)
+	links := pageLinks{Page: page, Pages: pages}
+	link := func(target int) string {
+		query := r.URL.Query()
+		query.Set("page", strconv.Itoa(target))
+		return r.URL.Path + "?" + query.Encode()
+	}
+	if page > 1 {
+		links.Previous = link(min(page-1, pages))
+	}
+	if page < pages {
+		links.Next = link(page + 1)
+	}
+	return links
+}
 
 type Handler struct {
 	authSvc       *service.AuthService
@@ -62,8 +97,8 @@ func parseTemplates(rootDir string) (map[string]*template.Template, error) {
 		"formatRupiah": formatRupiah,
 		"formatDate":   formatDate,
 		"formatMonth":  formatMonth,
-		"add": func(a, b int64) int64 { return a + b },
-		"mul": func(a, b int64) int64 { return a * b },
+		"add":          func(a, b int64) int64 { return a + b },
+		"mul":          func(a, b int64) int64 { return a * b },
 		"div": func(a, b int64) int64 {
 			if b == 0 {
 				return 0

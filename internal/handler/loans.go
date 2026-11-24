@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"koperasi/internal/domain"
 	"koperasi/internal/middleware"
@@ -14,10 +13,7 @@ import (
 
 // ListLoans menampilkan daftar pinjaman dengan filter status dan anggota.
 func (h *Handler) ListLoans(w http.ResponseWriter, r *http.Request) {
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
+	page := listPage(r)
 
 	var memberID *int64
 	if midStr := r.URL.Query().Get("member_id"); midStr != "" {
@@ -32,7 +28,7 @@ func (h *Handler) ListLoans(w http.ResponseWriter, r *http.Request) {
 		status = &st
 	}
 
-	loans, total, err := h.loanSvc.List(r.Context(), memberID, status, page, 20)
+	loans, total, err := h.loanSvc.List(r.Context(), memberID, status, page, listPageSize)
 	if err != nil {
 		http.Error(w, "Gagal memuat daftar pinjaman", http.StatusInternalServerError)
 		return
@@ -41,7 +37,7 @@ func (h *Handler) ListLoans(w http.ResponseWriter, r *http.Request) {
 	h.Render(w, r, "loans/index.html", map[string]any{
 		"Loans":      loans,
 		"TotalCount": total,
-		"Page":       page,
+		"Pagination": pagination(r, page, total),
 		"MemberID":   r.URL.Query().Get("member_id"),
 		"Status":     r.URL.Query().Get("status"),
 	})
@@ -50,7 +46,7 @@ func (h *Handler) ListLoans(w http.ResponseWriter, r *http.Request) {
 // ShowNewLoan menampilkan form pengajuan pinjaman baru beserta batas 3x simpanan pokok dan wajib.
 func (h *Handler) ShowNewLoan(w http.ResponseWriter, r *http.Request) {
 	memberIDStr := r.URL.Query().Get("member_id")
-	today := time.Now().Format("2006-01-02")
+	today := service.BusinessToday().Format("2006-01-02")
 
 	var member *domain.Member
 	var maxLimit int64
@@ -146,7 +142,7 @@ func (h *Handler) ShowLoan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	today := time.Now().Format("2006-01-02")
+	today := service.BusinessToday().Format("2006-01-02")
 	h.Render(w, r, "loans/detail.html", map[string]any{
 		"Detail":   detail,
 		"Today":    today,

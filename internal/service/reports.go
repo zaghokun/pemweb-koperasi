@@ -10,15 +10,14 @@ import (
 )
 
 type LoanCardResult struct {
-	Loan             domain.Loan
-	Member           domain.Member
-	Installments     []domain.Installment
-	Balances         []domain.InstallmentBalance
-	Payments         []domain.Payment
-	Allocations      []domain.PaymentAllocation
-	Settlement       *domain.LoanSettlement
-	TotalPaid        int64
-	RemainingBalance int64
+	Loan                domain.Loan
+	Member              domain.Member
+	Balances            []domain.InstallmentBalance
+	Payments            []domain.Payment
+	Status              string
+	MonthlyInterest     int64
+	RemainingPrincipal  int64
+	RemainingObligation int64
 }
 
 type ReportService struct {
@@ -28,7 +27,6 @@ type ReportService struct {
 	installmentRepo *repository.InstallmentRepository
 	paymentRepo     *repository.PaymentRepository
 	memberRepo      *repository.MemberRepository
-	settlementRepo  *repository.SettlementRepository
 }
 
 func NewReportService(
@@ -38,7 +36,6 @@ func NewReportService(
 	installmentRepo *repository.InstallmentRepository,
 	paymentRepo *repository.PaymentRepository,
 	memberRepo *repository.MemberRepository,
-	settlementRepo *repository.SettlementRepository,
 ) *ReportService {
 	return &ReportService{
 		db:              db,
@@ -47,7 +44,6 @@ func NewReportService(
 		installmentRepo: installmentRepo,
 		paymentRepo:     paymentRepo,
 		memberRepo:      memberRepo,
-		settlementRepo:  settlementRepo,
 	}
 }
 
@@ -69,7 +65,7 @@ func (s *ReportService) MonthlyIncome(ctx context.Context, year int, month int) 
 		return &repository.MonthlyIncomeSummary{Year: year, Month: month}, nil
 	}
 	if year < 2000 || year > 2100 || month < 1 || month > 12 {
-		now := time.Now().UTC()
+		now := BusinessToday()
 		year = now.Year()
 		month = int(now.Month())
 	}
@@ -86,7 +82,7 @@ func (s *ReportService) ArrearsReport(ctx context.Context, asOfDate time.Time) (
 		return nil, err
 	}
 
-	loanIDs, err := s.reportRepo.GetActiveLoanIDsWithOverdue(ctx, s.db, normDate)
+	loanIDs, err := s.reportRepo.GetLoanIDsWithOverdue(ctx, s.db, normDate)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +114,8 @@ func (s *ReportService) ArrearsReport(ctx context.Context, asOfDate time.Time) (
 			}
 
 			if due.Before(normDate) {
-				days, penaltyRem, err := domain.CalculatePenalty(b, normDate)
+				penalty, penaltyRem, err := domain.CalculatePenalty(b, normDate)
+				days := int(penalty / domain.DailyPenaltyAmount)
 				if err != nil {
 					return nil, err
 				}
@@ -134,17 +131,29 @@ func (s *ReportService) ArrearsReport(ctx context.Context, asOfDate time.Time) (
 
 				if remPrincipal > 0 || remInterest > 0 || penaltyRem > 0 {
 					overdueCount++
-					if int(days) > maxDays {
-						maxDays = int(days)
+					if days > maxDays {
+						maxDays = days
 					}
-					sumPrincipal += remPrincipal
-					sumInterest += remInterest
-					sumPenalty += penaltyRem
+					sumPrincipal, err = domain.AddMoney(sumPrincipal, remPrincipal)
+					if err != nil {
+						return nil, err
+					}
+					sumInterest, err = domain.AddMoney(sumInterest, remInterest)
+					if err != nil {
+						return nil, err
+					}
+					sumPenalty, err = domain.AddMoney(sumPenalty, penaltyRem)
+					if err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
 
-		totalArrears := sumPrincipal + sumInterest + sumPenalty
+		totalArrears, err := domain.TotalObligation([]domain.Obligation{{Principal: sumPrincipal, Interest: sumInterest, Penalty: sumPenalty}})
+		if err != nil {
+			return nil, err
+		}
 		if totalArrears > 0 {
 			results = append(results, repository.ArrearsLoanSummary{
 				LoanID:                  loan.ID,
@@ -168,7 +177,7 @@ func (s *ReportService) ArrearsReport(ctx context.Context, asOfDate time.Time) (
 }
 
 // LoanCard mengambil kartu pinjaman lengkap beserta jadwal dan histori pembayarannya.
-func (s *ReportService) LoanCard(ctx context.Context, loanID int64) (*LoanCardResult, error) {
+func (s *ReportService) LoanCard(ctx context.Context, loanID int64, asOf time.Time) (*LoanCardResult, error) {
 	loan, err := s.loanRepo.GetByID(ctx, s.db, loanID)
 	if err != nil {
 		return nil, err
@@ -177,52 +186,61 @@ func (s *ReportService) LoanCard(ctx context.Context, loanID int64) (*LoanCardRe
 	if err != nil {
 		return nil, err
 	}
-	installments, err := s.installmentRepo.GetByLoanID(ctx, s.db, loanID)
+	card := &LoanCardResult{Loan: *loan, Member: *member}
+	switch {
+	case asOf.Before(loan.ApplicationDate):
+		card.Status = "Belum diajukan"
+	case loan.DisbursementDate != nil && asOf.Before(*loan.DisbursementDate):
+		card.Status = "Belum cair"
+	case loan.DisbursementDate == nil && loan.Status == domain.LoanRejected:
+		card.Status = "Ditolak"
+	case loan.DisbursementDate == nil:
+		card.Status = "Belum cair"
+	case loan.SettledOn != nil && !loan.SettledOn.After(asOf):
+		card.Status = "Lunas"
+	default:
+		card.Status = "Aktif"
+	}
+	if card.Loan.DisbursementDate == nil || card.Loan.DisbursementDate.After(asOf) {
+		card.Loan.DisbursementDate = nil
+		return card, nil
+	}
+
+	card.Balances, err = s.installmentRepo.GetInstallmentBalances(ctx, s.db, loanID, asOf)
 	if err != nil {
 		return nil, err
 	}
-	balances, err := s.installmentRepo.GetInstallmentBalances(ctx, s.db, loanID, time.Now().UTC())
+	if len(card.Balances) != 0 {
+		card.MonthlyInterest = card.Balances[0].Installment.InterestDue
+	}
+
+	obligations := make([]domain.Obligation, 0, len(card.Balances))
+	for _, balance := range card.Balances {
+		_, penalty, err := domain.CalculatePenalty(balance, asOf)
+		if err != nil {
+			return nil, err
+		}
+		principal := balance.Installment.PrincipalDue - balance.PrincipalPaid
+		interest := balance.Installment.InterestDue - balance.Installment.InterestWaived - balance.InterestPaid
+		obligations = append(obligations, domain.Obligation{Principal: principal, Interest: interest, Penalty: penalty})
+		card.RemainingPrincipal, err = domain.AddMoney(card.RemainingPrincipal, principal)
+		if err != nil {
+			return nil, err
+		}
+	}
+	card.RemainingObligation, err = domain.TotalObligation(obligations)
 	if err != nil {
 		return nil, err
 	}
+
 	payments, err := s.paymentRepo.ListByLoanID(ctx, s.db, loanID)
 	if err != nil {
 		return nil, err
 	}
-
-	var allAllocations []domain.PaymentAllocation
-	for _, p := range payments {
-		allocs, err := s.paymentRepo.GetAllocationsByPaymentID(ctx, s.db, p.ID)
-		if err == nil {
-			allAllocations = append(allAllocations, allocs...)
+	for _, payment := range payments {
+		if !payment.PaymentDate.After(asOf) {
+			card.Payments = append(card.Payments, payment)
 		}
 	}
-
-	settlement, _ := s.settlementRepo.GetByLoanID(ctx, s.db, loanID)
-
-	var totalPaid int64
-	for _, p := range payments {
-		totalPaid += p.Amount
-	}
-
-	var principalPaidTotal int64
-	for _, b := range balances {
-		principalPaidTotal += b.PrincipalPaid
-	}
-	remPrincipal := loan.Principal - principalPaidTotal
-	if remPrincipal < 0 {
-		remPrincipal = 0
-	}
-
-	return &LoanCardResult{
-		Loan:             *loan,
-		Member:           *member,
-		Installments:     installments,
-		Balances:         balances,
-		Payments:         payments,
-		Allocations:      allAllocations,
-		Settlement:       settlement,
-		TotalPaid:        totalPaid,
-		RemainingBalance: remPrincipal,
-	}, nil
+	return card, nil
 }

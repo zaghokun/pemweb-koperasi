@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
 	"koperasi/internal/domain"
 	"koperasi/internal/middleware"
@@ -21,12 +20,12 @@ func (h *Handler) ShowNewPayment(w http.ResponseWriter, r *http.Request) {
 
 	dateStr := r.URL.Query().Get("payment_date")
 	if dateStr == "" {
-		dateStr = time.Now().Format("2006-01-02")
+		dateStr = service.BusinessToday().Format("2006-01-02")
 	}
 
 	payDate, err := domain.ParseBusinessDate(dateStr)
 	if err != nil {
-		payDate = time.Now().UTC()
+		payDate = service.BusinessToday()
 	}
 
 	preview, err := h.paymentSvc.Preview(r.Context(), loanID, payDate)
@@ -118,8 +117,16 @@ func (h *Handler) ShowPaymentReceipt(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) renderPaymentError(w http.ResponseWriter, r *http.Request, loanID int64, errMsg string) {
 	payDateStr := r.FormValue("payment_date")
-	payDate, _ := domain.ParseBusinessDate(payDateStr)
-	preview, _ := h.paymentSvc.Preview(r.Context(), loanID, payDate)
+	payDate, err := domain.ParseBusinessDate(payDateStr)
+	if err != nil {
+		payDate = service.BusinessToday()
+		payDateStr = payDate.Format("2006-01-02")
+	}
+	preview, err := h.paymentSvc.Preview(r.Context(), loanID, payDate)
+	if err != nil {
+		h.renderError(w, r, http.StatusBadRequest, errMsg)
+		return
+	}
 
 	h.Render(w, r, "payments/form.html", map[string]any{
 		"Error":       errMsg,

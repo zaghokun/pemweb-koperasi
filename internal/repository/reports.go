@@ -12,29 +12,29 @@ func NewReportRepository() *ReportRepository {
 }
 
 type DashboardSummary struct {
-	ActiveMemberCount         int64
-	TotalPrincipalSavings     int64
-	TotalMandatorySavings     int64
-	TotalVoluntarySavings     int64
-	TotalSavings              int64
-	ActiveLoanCount           int64
-	ActiveLoanPrincipal       int64
-	ArrearsLoanCount          int64
+	ActiveMemberCount          int64
+	TotalPrincipalSavings      int64
+	TotalMandatorySavings      int64
+	TotalVoluntarySavings      int64
+	TotalSavings               int64
+	ActiveLoanCount            int64
+	ActiveLoanPrincipal        int64
+	ArrearsLoanCount           int64
 	CurrentMonthInterestIncome int64
-	CurrentMonthPenaltyIncome int64
+	CurrentMonthPenaltyIncome  int64
 }
 
 type MonthlyIncomeSummary struct {
-	Year                    int
-	Month                   int
-	PrincipalReceived       int64
-	InterestIncome          int64
-	PenaltyIncome           int64
-	AdminFeeIncome          int64
+	Year                     int
+	Month                    int
+	PrincipalReceived        int64
+	InterestIncome           int64
+	PenaltyIncome            int64
+	AdminFeeIncome           int64
 	PrincipalSavingsReceived int64
 	MandatorySavingsReceived int64
 	VoluntarySavingsReceived int64
-	TotalCashIn             int64
+	TotalCashIn              int64
 }
 
 type ArrearsLoanSummary struct {
@@ -185,19 +185,20 @@ func (r *ReportRepository) GetMonthlyIncome(ctx context.Context, db DBTX, year i
 	return summary, nil
 }
 
-// GetActiveLoanIDsWithOverdue mengambil daftar pinjaman aktif yang berpotensi menunggak pada tanggal asOf.
-func (r *ReportRepository) GetActiveLoanIDsWithOverdue(ctx context.Context, db DBTX, asOf time.Time) ([]int64, error) {
+// GetLoanIDsWithOverdue mengambil daftar pinjaman aktif yang berpotensi menunggak pada tanggal asOf.
+func (r *ReportRepository) GetLoanIDsWithOverdue(ctx context.Context, db DBTX, asOf time.Time) ([]int64, error) {
 	asOfStr := asOf.Format("2006-01-02")
 	const query = `
 		SELECT DISTINCT l.id
 		FROM loans l
 		JOIN installments i ON i.loan_id = l.id
-		WHERE l.status = 'ACTIVE'
+		WHERE l.disbursement_date <= ?
+		  AND (l.settled_on IS NULL OR l.settled_on > ?)
 		  AND (i.closed_on IS NULL OR i.closed_on > ?)
 		  AND i.due_date < ?
 		ORDER BY l.id ASC
 	`
-	rows, err := db.QueryContext(ctx, query, asOfStr, asOfStr)
+	rows, err := db.QueryContext(ctx, query, asOfStr, asOfStr, asOfStr, asOfStr)
 	if err != nil {
 		return nil, err
 	}

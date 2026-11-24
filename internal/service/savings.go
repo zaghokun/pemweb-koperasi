@@ -83,18 +83,6 @@ func (s *SavingService) DepositMandatory(ctx context.Context, input DepositManda
 	}
 	periodFirstOfMonth := time.Date(normPeriod.Year(), normPeriod.Month(), 1, 0, 0, 0, 0, time.UTC)
 
-	// Periksa replay idempotensi request_key sebelum transaksi
-	existing, err := s.savingRepo.GetByRequestKey(ctx, s.db, reqKey)
-	if err == nil && existing != nil {
-		if existing.MemberID == input.MemberID &&
-			existing.SavingType == domain.SavingMandatory &&
-			existing.TransactionType == domain.SavingDeposit &&
-			existing.Amount == domain.MandatorySavingAmount {
-			return existing, nil
-		}
-		return nil, ErrRequestKeyConflict
-	}
-
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
@@ -110,8 +98,26 @@ func (s *SavingService) DepositMandatory(ctx context.Context, input DepositManda
 		return nil, err
 	}
 
+	existing, err := s.savingRepo.GetByRequestKey(ctx, tx, reqKey)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
+	}
+	if existing != nil {
+		if existing.MemberID == input.MemberID && existing.TransactionDate.Equal(normTxDate) &&
+			existing.SavingType == domain.SavingMandatory &&
+			existing.TransactionType == domain.SavingDeposit &&
+			existing.PeriodMonth != nil && existing.PeriodMonth.Equal(periodFirstOfMonth) &&
+			existing.Amount == domain.MandatorySavingAmount {
+			return existing, nil
+		}
+		return nil, ErrRequestKeyConflict
+	}
+
 	if member.Status != domain.MemberActive {
 		return nil, ErrMemberNotActive
+	}
+	if err := validateMemberDate(ctx, tx, s.memberRepo, member, normTxDate); err != nil {
+		return nil, err
 	}
 
 	// Periode tidak boleh sebelum bulan anggota bergabung
@@ -171,18 +177,6 @@ func (s *SavingService) DepositVoluntary(ctx context.Context, input DepositVolun
 		return nil, err
 	}
 
-	// Idempotency check
-	existing, err := s.savingRepo.GetByRequestKey(ctx, s.db, reqKey)
-	if err == nil && existing != nil {
-		if existing.MemberID == input.MemberID &&
-			existing.SavingType == domain.SavingVoluntary &&
-			existing.TransactionType == domain.SavingDeposit &&
-			existing.Amount == input.Amount {
-			return existing, nil
-		}
-		return nil, ErrRequestKeyConflict
-	}
-
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
@@ -197,8 +191,25 @@ func (s *SavingService) DepositVoluntary(ctx context.Context, input DepositVolun
 		return nil, err
 	}
 
+	existing, err := s.savingRepo.GetByRequestKey(ctx, tx, reqKey)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
+	}
+	if existing != nil {
+		if existing.MemberID == input.MemberID && existing.TransactionDate.Equal(normTxDate) &&
+			existing.SavingType == domain.SavingVoluntary &&
+			existing.TransactionType == domain.SavingDeposit &&
+			existing.Amount == input.Amount {
+			return existing, nil
+		}
+		return nil, ErrRequestKeyConflict
+	}
+
 	if member.Status != domain.MemberActive {
 		return nil, ErrMemberNotActive
+	}
+	if err := validateMemberDate(ctx, tx, s.memberRepo, member, normTxDate); err != nil {
+		return nil, err
 	}
 
 	now := time.Now().UTC()
@@ -247,18 +258,6 @@ func (s *SavingService) WithdrawVoluntary(ctx context.Context, input WithdrawVol
 		return nil, err
 	}
 
-	// Idempotency check
-	existing, err := s.savingRepo.GetByRequestKey(ctx, s.db, reqKey)
-	if err == nil && existing != nil {
-		if existing.MemberID == input.MemberID &&
-			existing.SavingType == domain.SavingVoluntary &&
-			existing.TransactionType == domain.SavingWithdrawal &&
-			existing.Amount == input.Amount {
-			return existing, nil
-		}
-		return nil, ErrRequestKeyConflict
-	}
-
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
@@ -273,8 +272,25 @@ func (s *SavingService) WithdrawVoluntary(ctx context.Context, input WithdrawVol
 		return nil, err
 	}
 
+	existing, err := s.savingRepo.GetByRequestKey(ctx, tx, reqKey)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
+	}
+	if existing != nil {
+		if existing.MemberID == input.MemberID && existing.TransactionDate.Equal(normTxDate) &&
+			existing.SavingType == domain.SavingVoluntary &&
+			existing.TransactionType == domain.SavingWithdrawal &&
+			existing.Amount == input.Amount {
+			return existing, nil
+		}
+		return nil, ErrRequestKeyConflict
+	}
+
 	if member.Status != domain.MemberActive {
 		return nil, ErrMemberNotActive
+	}
+	if err := validateMemberDate(ctx, tx, s.memberRepo, member, normTxDate); err != nil {
+		return nil, err
 	}
 
 	// Hitung saldo sukarela saat ini di bawah row lock

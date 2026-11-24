@@ -72,6 +72,23 @@ func (r *MemberRepository) GetByIDForUpdate(ctx context.Context, db DBTX, id int
 	return scanMember(row)
 }
 
+func (r *MemberRepository) LastFinancialDate(ctx context.Context, db DBTX, memberID int64) (*time.Time, error) {
+	const query = `
+		SELECT MAX(transaction_date)
+		FROM (
+			SELECT MAX(transaction_date) AS transaction_date FROM savings WHERE member_id = ?
+			UNION ALL
+			SELECT MAX(disbursement_date) FROM loans WHERE member_id = ?
+			UNION ALL
+			SELECT MAX(p.payment_date) FROM payments p
+			JOIN loans l ON l.id = p.loan_id WHERE l.member_id = ?
+		) AS member_dates
+	`
+	var latest *time.Time
+	err := db.QueryRowContext(ctx, query, memberID, memberID, memberID).Scan(&latest)
+	return latest, err
+}
+
 // GetByNumber mengambil anggota berdasarkan member_number.
 func (r *MemberRepository) GetByNumber(ctx context.Context, db DBTX, number string) (*domain.Member, error) {
 	const query = `
@@ -192,9 +209,7 @@ func (r *MemberRepository) List(ctx context.Context, db DBTX, search string, lim
 func scanMember(scanner interface{ Scan(dest ...any) error }) (*domain.Member, error) {
 	var m domain.Member
 	var statusStr string
-	var exitDateStr sql.NullString
 	var exitUserID sql.NullInt64
-	var joinDateStr string
 
 	err := scanner.Scan(
 		&m.ID,
@@ -202,9 +217,9 @@ func scanMember(scanner interface{ Scan(dest ...any) error }) (*domain.Member, e
 		&m.Name,
 		&m.Address,
 		&m.Phone,
-		&joinDateStr,
+		&m.JoinDate,
 		&statusStr,
-		&exitDateStr,
+		&m.ExitDate,
 		&exitUserID,
 		&m.CreatedBy,
 		&m.CreatedAt,
@@ -217,19 +232,7 @@ func scanMember(scanner interface{ Scan(dest ...any) error }) (*domain.Member, e
 	}
 
 	m.Status = domain.MemberStatus(statusStr)
-	jt, err := domain.ParseBusinessDate(joinDateStr)
-	if err != nil {
-		return nil, err
-	}
-	m.JoinDate = jt
 
-	if exitDateStr.Valid && exitDateStr.String != "" {
-		ed, err := domain.ParseBusinessDate(exitDateStr.String)
-		if err != nil {
-			return nil, err
-		}
-		m.ExitDate = &ed
-	}
 	if exitUserID.Valid {
 		uid := exitUserID.Int64
 		m.ExitUserID = &uid

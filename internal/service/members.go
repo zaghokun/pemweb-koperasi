@@ -12,21 +12,21 @@ import (
 )
 
 var (
-	ErrMemberNotFound      = errors.New("data anggota tidak ditemukan")
-	ErrMemberNumberExists  = errors.New("nomor anggota sudah terdaftar")
-	ErrMemberNotActive     = errors.New("anggota tidak berstatus aktif")
-	ErrMemberHasOpenLoan   = errors.New("anggota masih memiliki pinjaman aktif atau pengajuan terbuka")
-	ErrInvalidMemberData   = errors.New("data anggota tidak lengkap atau tidak valid")
-	ErrExitDateBeforeJoin  = errors.New("tanggal keluar tidak boleh mendahului tanggal masuk")
+	ErrMemberNotFound     = errors.New("data anggota tidak ditemukan")
+	ErrMemberNumberExists = errors.New("nomor anggota sudah terdaftar")
+	ErrMemberNotActive    = errors.New("anggota tidak berstatus aktif")
+	ErrMemberHasOpenLoan  = errors.New("anggota masih memiliki pinjaman aktif atau pengajuan terbuka")
+	ErrInvalidMemberData  = errors.New("data anggota tidak lengkap atau tidak valid")
+	ErrExitDateBeforeJoin = errors.New("tanggal keluar tidak boleh mendahului tanggal masuk")
 )
 
 type MemberDetail struct {
-	Member           domain.Member
-	PokokBalance     int64
-	WajibBalance     int64
-	SukarelaBalance  int64
-	TotalSavings     int64
-	MaxLoanLimit     int64
+	Member          domain.Member
+	PokokBalance    int64
+	WajibBalance    int64
+	SukarelaBalance int64
+	TotalSavings    int64
+	MaxLoanLimit    int64
 }
 
 type MemberSummary struct {
@@ -83,6 +83,10 @@ func (s *MemberService) Register(ctx context.Context, input RegisterMemberInput)
 	joinDate, err := domain.NormalizeBusinessDate(input.JoinDate)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if joinDate.After(BusinessToday()) {
+		return nil, nil, ErrFutureDate
 	}
 
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
@@ -263,6 +267,9 @@ func (s *MemberService) Exit(ctx context.Context, memberID int64, exitDate time.
 
 	if normExitDate.Before(member.JoinDate) {
 		return nil, ErrExitDateBeforeJoin
+	}
+	if err := validateMemberDate(ctx, tx, s.memberRepo, member, normExitDate); err != nil {
+		return nil, err
 	}
 
 	// Cek pinjaman terbuka

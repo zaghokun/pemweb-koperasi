@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	ErrPaymentNotFound    = errors.New("data pembayaran tidak ditemukan")
-	ErrPaymentBeforeDisb  = errors.New("tanggal pembayaran tidak boleh mendahului tanggal pencairan pinjaman")
+	ErrPaymentNotFound     = errors.New("data pembayaran tidak ditemukan")
+	ErrPaymentBeforeDisb   = errors.New("tanggal pembayaran tidak boleh mendahului tanggal pencairan pinjaman")
 	ErrNoPayableObligation = errors.New("tidak ada kewajiban angsuran yang dapat dibayar pada tanggal ini")
 )
 
@@ -26,9 +26,9 @@ type PayInput struct {
 }
 
 type PayResult struct {
-	Payment      domain.Payment
-	Allocations  []domain.PaymentAllocation
-	ClosedCount  int
+	Payment       domain.Payment
+	Allocations   []domain.PaymentAllocation
+	ClosedCount   int
 	IsLoanSettled bool
 }
 
@@ -109,7 +109,7 @@ func (s *PaymentService) Preview(ctx context.Context, loanID int64, paymentDate 
 		return nil, err
 	}
 	// Jika setelah jatuh tempo terakhir, seluruh angsuran boleh dibayar
-	if errors.Is(err, domain.ErrOutsideSchedule) && normPayDate.After(loan.DisbursementDate.AddDate(0, loan.TenorMonths, 0)) {
+	if errors.Is(err, domain.ErrOutsideSchedule) {
 		currPeriod = loan.TenorMonths
 	}
 
@@ -123,7 +123,7 @@ func (s *PaymentService) Preview(ctx context.Context, loanID int64, paymentDate 
 
 	for _, bal := range balances {
 		// Hanya angsuran sampai periode berjalan yang boleh dibayar lewat pembayaran biasa (KD-05)
-		if bal.Installment.InstallmentNumber > currPeriod && currPeriod > 0 {
+		if bal.Installment.InstallmentNumber > currPeriod {
 			continue
 		}
 		if bal.Installment.ClosedOn != nil {
@@ -197,46 +197,37 @@ func (s *PaymentService) Pay(ctx context.Context, input PayInput) (*PayResult, e
 		return nil, err
 	}
 
-	// Idempotency check
-	existing, err := s.paymentRepo.GetByRequestKey(ctx, s.db, reqKey)
-	if err == nil && existing != nil {
-		if existing.LoanID == input.LoanID && existing.Amount == input.Amount {
-			allocs, err := s.paymentRepo.GetAllocationsByPaymentID(ctx, s.db, existing.ID)
-			if err != nil {
-				return nil, err
-			}
-			return &PayResult{
-				Payment:     *existing,
-				Allocations: allocs,
-			}, nil
-		}
-		return nil, ErrRequestKeyConflict
-	}
-
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	// Kunci anggota lalu pinjaman FOR UPDATE (urutan serialisasi aman)
-	loan, err := s.loanRepo.GetByIDForUpdate(ctx, tx, input.LoanID)
+	loan, member, err := lockLoanAndMember(ctx, tx, s.loanRepo, s.memberRepo, input.LoanID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, ErrLoanNotFound
-		}
 		return nil, err
 	}
-
+	existing, err := s.paymentRepo.GetByRequestKey(ctx, tx, reqKey)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
+	}
+	if existing != nil {
+		if existing.LoanID != input.LoanID || existing.PaymentType != domain.PaymentRegular ||
+			existing.Amount != input.Amount || !existing.PaymentDate.Equal(normPayDate) {
+			return nil, ErrRequestKeyConflict
+		}
+		allocations, err := s.paymentRepo.GetAllocationsByPaymentID(ctx, tx, existing.ID)
+		if err != nil {
+			return nil, err
+		}
+		return &PayResult{Payment: *existing, Allocations: allocations}, nil
+	}
 	if loan.Status != domain.LoanActive {
 		return nil, ErrInvalidLoanStatus
 	}
-
-	member, err := s.memberRepo.GetByIDForUpdate(ctx, tx, loan.MemberID)
-	if err != nil {
+	if err := validateMemberDate(ctx, tx, s.memberRepo, member, normPayDate); err != nil {
 		return nil, err
 	}
-	_ = member
 
 	if loan.DisbursementDate == nil || normPayDate.Before(*loan.DisbursementDate) {
 		return nil, ErrPaymentBeforeDisb
@@ -247,10 +238,13 @@ func (s *PaymentService) Pay(ctx context.Context, input PayInput) (*PayResult, e
 	if err != nil && !errors.Is(err, domain.ErrOutsideSchedule) {
 		return nil, err
 	}
-	if errors.Is(err, domain.ErrOutsideSchedule) && normPayDate.After(loan.DisbursementDate.AddDate(0, loan.TenorMonths, 0)) {
+	if errors.Is(err, domain.ErrOutsideSchedule) {
 		currPeriod = loan.TenorMonths
 	}
 
+	if err := s.installmentRepo.LockByLoanID(ctx, tx, input.LoanID); err != nil {
+		return nil, err
+	}
 	balances, err := s.installmentRepo.GetInstallmentBalances(ctx, tx, input.LoanID, normPayDate)
 	if err != nil {
 		return nil, err
@@ -258,7 +252,7 @@ func (s *PaymentService) Pay(ctx context.Context, input PayInput) (*PayResult, e
 
 	var obligations []domain.Obligation
 	for _, bal := range balances {
-		if bal.Installment.InstallmentNumber > currPeriod && currPeriod > 0 {
+		if bal.Installment.InstallmentNumber > currPeriod {
 			continue
 		}
 		if bal.Installment.ClosedOn != nil {
@@ -384,7 +378,7 @@ func (s *PaymentService) Pay(ctx context.Context, input PayInput) (*PayResult, e
 
 	isSettled := false
 	if allClosed {
-		if err := s.loanRepo.UpdateStatus(ctx, tx, input.LoanID, domain.LoanSettled, nil, nil, nil, nil, &normPayDate, nil); err != nil {
+		if err := s.loanRepo.UpdateStatus(ctx, tx, input.LoanID, domain.LoanSettled, loan.ApprovedBy, loan.DisbursedBy, nil, loan.DisbursementDate, &normPayDate, nil); err != nil {
 			return nil, err
 		}
 		isSettled = true

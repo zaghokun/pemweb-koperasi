@@ -169,14 +169,13 @@ func (r *PaymentRepository) ListByLoanID(ctx context.Context, db DBTX, loanID in
 func scanPayment(scanner interface{ Scan(dest ...any) error }) (*domain.Payment, error) {
 	var p domain.Payment
 	var pt string
-	var pdStr string
 
 	err := scanner.Scan(
 		&p.ID,
 		&p.LoanID,
 		&p.UserID,
 		&pt,
-		&pdStr,
+		&p.PaymentDate,
 		&p.Amount,
 		&p.RequestKey,
 		&p.CreatedAt,
@@ -189,11 +188,6 @@ func scanPayment(scanner interface{ Scan(dest ...any) error }) (*domain.Payment,
 	}
 
 	p.PaymentType = domain.PaymentType(pt)
-	pd, err := domain.ParseBusinessDate(pdStr)
-	if err != nil {
-		return nil, err
-	}
-	p.PaymentDate = pd
 
 	return &p, nil
 }

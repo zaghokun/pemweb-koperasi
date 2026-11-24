@@ -97,7 +97,7 @@ func setupTestApp(t *testing.T) (http.Handler, *mockUserRepo, *mockSessionRepo) 
 	settlementRepo := repository.NewSettlementRepository()
 	reportRepo := repository.NewReportRepository()
 	settlementSvc := service.NewSettlementService(nil, settlementRepo, loanRepo, installmentRepo, paymentRepo, memberRepo)
-	reportSvc := service.NewReportService(nil, reportRepo, loanRepo, installmentRepo, paymentRepo, memberRepo, settlementRepo)
+	reportSvc := service.NewReportService(nil, reportRepo, loanRepo, installmentRepo, paymentRepo, memberRepo)
 
 	h, err := handler.NewHandler(authSvc, memberSvc, savingSvc, loanSvc, paymentSvc, settlementSvc, reportSvc, false, templatesDir)
 	if err != nil {

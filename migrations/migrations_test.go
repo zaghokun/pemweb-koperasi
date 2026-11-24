@@ -13,6 +13,10 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+
+	"koperasi/internal/domain"
+	"koperasi/internal/repository"
+	"koperasi/internal/service"
 )
 
 // TestSchema owns only its nine tables in an initially empty, dedicated *_test
@@ -408,6 +412,97 @@ func TestSchema(t *testing.T) {
 		}
 		if paymentCount != 0 || allocationCount != 0 || closedOn.Valid {
 			t.Fatal("failed transaction left a payment, allocation, or installment closure")
+		}
+	})
+
+	t.Run("financial services preserve calendar dates and loan history", func(t *testing.T) {
+		members := repository.NewMemberRepository()
+		savings := repository.NewSavingRepository()
+		loans := repository.NewLoanRepository()
+		installments := repository.NewInstallmentRepository()
+		payments := repository.NewPaymentRepository()
+		settlements := repository.NewSettlementRepository()
+		loanSvc := service.NewLoanService(db, loans, installments, members, savings)
+		paySvc := service.NewPaymentService(db, payments, loans, installments, members)
+		settleSvc := service.NewSettlementService(db, settlements, loans, installments, payments, members)
+		reportSvc := service.NewReportService(db, repository.NewReportRepository(), loans, installments, payments, members)
+		memberSvc := service.NewMemberService(db, members, savings, loans)
+
+		date := func(month time.Month, day int) time.Time {
+			return time.Date(2025, month, day, 0, 0, 0, 0, time.UTC)
+		}
+		registered, _, err := memberSvc.Register(ctx, service.RegisterMemberInput{
+			MemberNumber: "SCHEMA-FINANCE", Name: "Finance test", Address: "Test address",
+			Phone: "0800000000", JoinDate: date(time.January, 5), UserID: userID,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		loan, err := loanSvc.Apply(ctx, service.ApplyLoanInput{
+			MemberID: registered.ID, Principal: 1500000, TenorMonths: 6,
+			ApplicationDate: date(time.January, 20), UserID: userID,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := loanSvc.Approve(ctx, loan.ID, userID); err != nil {
+			t.Fatal(err)
+		}
+		schedule, err := loanSvc.Disburse(ctx, loan.ID, date(time.January, 20), userID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(schedule) != 6 || !schedule[0].DueDate.Equal(date(time.February, 10)) {
+			t.Fatalf("unexpected schedule: %+v", schedule)
+		}
+
+		paymentDate := date(time.March, 15)
+		partial, err := paySvc.Pay(ctx, service.PayInput{
+			LoanID: loan.ID, UserID: userID, Amount: 50000, PaymentDate: paymentDate, RequestKey: key(),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = paySvc.Pay(ctx, service.PayInput{
+			LoanID: loan.ID, UserID: userID, Amount: 1, PaymentDate: date(time.March, 14), RequestKey: key(),
+		})
+		if !errors.Is(err, service.ErrBackdated) {
+			t.Fatalf("expected backdated payment to fail, got %v", err)
+		}
+
+		settlementDate := date(time.March, 16)
+		preview, err := settleSvc.Preview(ctx, loan.ID, settlementDate)
+		if err != nil {
+			t.Fatal(err)
+		}
+		input := service.SettleInput{
+			LoanID: loan.ID, UserID: userID, SettlementDate: settlementDate,
+			ConfirmedAmount: preview.Breakdown.TotalReceived, RequestKey: key(),
+		}
+		settled, err := settleSvc.Settle(ctx, input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		replayed, err := settleSvc.Settle(ctx, input)
+		if err != nil || replayed.Payment.ID != settled.Payment.ID {
+			t.Fatalf("expected same settlement receipt on replay, got %+v, %v", replayed, err)
+		}
+		card, err := reportSvc.LoanCard(ctx, loan.ID, paymentDate)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if card.Status != "Aktif" || card.RemainingPrincipal != loan.Principal ||
+			len(card.Payments) != 1 || card.Payments[0].ID != partial.Payment.ID ||
+			card.Balances[1].Installment.ClosedOn != nil {
+			t.Fatalf("unexpected card before settlement: %+v", card)
+		}
+		current, err := loans.GetByID(ctx, db, loan.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if current.Status != domain.LoanSettled || current.ApprovedBy == nil || current.DisbursedBy == nil || current.SettledOn == nil ||
+			!current.SettledOn.Equal(settlementDate) {
+			t.Fatalf("settlement lost loan metadata: %+v", current)
 		}
 	})
 }

@@ -8,11 +8,12 @@ import (
 
 	"koperasi/internal/domain"
 	"koperasi/internal/repository"
+	"koperasi/internal/service"
 )
 
 // ShowDashboard menampilkan halaman ringkasan operasional dengan metrik agregat riil.
 func (h *Handler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
-	today := time.Now().UTC()
+	today := service.BusinessToday()
 	var stats *repository.DashboardSummary
 	if h.reportSvc != nil {
 		var err error
@@ -41,7 +42,16 @@ func (h *Handler) ShowLoanCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	card, err := h.reportSvc.LoanCard(r.Context(), loanID)
+	asOf := service.BusinessToday()
+	if date := r.URL.Query().Get("as_of"); date != "" {
+		asOf, err = domain.ParseBusinessDate(date)
+		if err != nil {
+			h.renderError(w, r, http.StatusBadRequest, "Tanggal posisi laporan tidak valid")
+			return
+		}
+	}
+
+	card, err := h.reportSvc.LoanCard(r.Context(), loanID, asOf)
 	if err != nil {
 		h.renderNotFound(w, r)
 		return
@@ -49,6 +59,8 @@ func (h *Handler) ShowLoanCard(w http.ResponseWriter, r *http.Request) {
 
 	data := h.newTemplateData(r)
 	data["Card"] = card
+	data["AsOfDate"] = asOf.Format("2006-01-02")
+	data["PositionDate"] = asOf
 
 	h.render(w, r, "reports/loan_card.html", data)
 }
@@ -62,10 +74,10 @@ func (h *Handler) ShowArrearsReport(w http.ResponseWriter, r *http.Request) {
 	if dateStr != "" {
 		asOf, err = domain.ParseBusinessDate(dateStr)
 		if err != nil {
-			asOf = time.Now().UTC()
+			asOf = service.BusinessToday()
 		}
 	} else {
-		asOf = time.Now().UTC()
+		asOf = service.BusinessToday()
 	}
 
 	items, err := h.reportSvc.ArrearsReport(r.Context(), asOf)
@@ -95,7 +107,7 @@ func (h *Handler) ShowArrearsReport(w http.ResponseWriter, r *http.Request) {
 
 // ShowMonthlyIncomeReport menampilkan rekapitulasi penerimaan kas jasa dan denda bulanan.
 func (h *Handler) ShowMonthlyIncomeReport(w http.ResponseWriter, r *http.Request) {
-	now := time.Now().UTC()
+	now := service.BusinessToday()
 	year := now.Year()
 	month := int(now.Month())
 

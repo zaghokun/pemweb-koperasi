@@ -1,6 +1,84 @@
-/* Koperasi Karyawan Sejahtera Custom Styles */
+.site-nav {
+  background-color: #124988;
+}
+
+.site-nav-inner, .site-menu, .site-account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.site-nav-inner {
+  justify-content: space-between;
+}
+
+.site-menu {
+  flex: 1;
+  justify-content: space-between;
+}
+
+.site-account {
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
 .navbar-brand {
-  letter-spacing: 0.5px;
+  margin-right: 0;
+  white-space: normal;
+}
+
+.site-menu-toggle, .site-menu-toggle[hidden] {
+  display: none;
+}
+
+.site-menu .navbar-nav {
+  margin: 0;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.site-menu .nav-link, .report-nav .nav-link {
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.375rem;
+}
+
+.site-menu .nav-link {
+  color: #fff;
+}
+
+.site-menu .nav-link:hover {
+  background: #0e396b;
+}
+
+.report-nav, .pagination-bar, .report-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.report-nav {
+  padding: 0;
+  list-style: none;
+}
+
+.report-nav .nav-link {
+  color: #124988;
+  background: #e9f0f8;
+}
+
+.report-nav .nav-link[aria-current="page"] {
+  color: #fff;
+  background: #124988;
+}
+
+.pagination-bar {
+  align-items: center;
+}
+
+.pagination-bar span {
+  margin-inline-end: 0.25rem;
 }
 
 .table th {
@@ -8,10 +86,147 @@
   background-color: #f1f3f5;
 }
 
-.card {
-  transition: transform 0.1s ease-in-out;
+.table-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table-responsive > table {
+  min-width: 32rem;
+}
+
+.table-responsive .text-end {
+  white-space: nowrap;
+}
+
+.row > * {
+  min-width: 0;
+}
+
+.row.g-2, .row.g-3, .row.g-4 {
+  row-gap: 0.75rem;
+}
+
+.col-md-2, .col-md-7, .col-md-8, .col-md-10 {
+  flex: 0 0 100%;
+  max-width: 100%;
+  padding-inline: 0.75rem;
+}
+
+.card-body, main, .badge {
+  overflow-wrap: anywhere;
+}
+
+.btn-outline-primary, .btn-outline-info {
+  color: #124988;
+  border-color: #52779e;
+}
+
+.btn-outline-secondary {
+  color: #414d5c;
+  border-color: #707e8c;
+}
+
+.btn-outline-danger {
+  color: #952c3a;
+  border-color: #a24753;
+}
+
+.btn-outline-primary:hover, .btn-outline-secondary:hover,
+.btn-outline-info:hover, .btn-outline-danger:hover {
+  background: #eef2f6;
+}
+
+:is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #1955a3;
+  outline-offset: 2px;
+}
+
+.site-nav :is(a, button):focus-visible {
+  outline-color: #fff;
 }
 
 .currency {
   font-family: Consolas, "Liberation Mono", Courier, monospace;
+}
+
+@media (min-width: 769px) {
+  .col-md-2 { flex-basis: 16.6667%; max-width: 16.6667%; }
+  .col-md-7 { flex-basis: 58.3333%; max-width: 58.3333%; }
+  .col-md-8 { flex-basis: 66.6667%; max-width: 66.6667%; }
+  .col-md-10 { flex-basis: 83.3333%; max-width: 83.3333%; }
+}
+
+@media screen and (max-width: 58rem) {
+  .site-nav-inner {
+    flex-wrap: wrap;
+  }
+
+  .site-menu-toggle:not([hidden]) {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .site-menu {
+    flex: 0 0 100%;
+    flex-wrap: wrap;
+  }
+
+  .site-menu-toggle:not([hidden])[aria-expanded="false"] + .site-menu {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 48rem) {
+  .site-menu .navbar-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
+    width: 100%;
+  }
+
+  .site-account {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  main :is(.justify-content-between, .justify-content-end, .d-flex.gap-2) {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  main .btn, .site-nav .btn:not([hidden]), .site-nav .nav-link, .report-nav .nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    max-inline-size: 100%;
+  }
+
+  main .card-body {
+    padding: 1rem !important;
+  }
+
+  .form-control, .form-select {
+    min-height: 44px;
+    min-width: 0;
+  }
+}
+
+@media print {
+  .d-print-none {
+    display: none !important;
+  }
+
+  .table-responsive {
+    overflow: visible;
+  }
+
+  .table-responsive > table {
+    min-width: 0;
+  }
+
+  .table-responsive .text-end {
+    white-space: normal;
+  }
 }

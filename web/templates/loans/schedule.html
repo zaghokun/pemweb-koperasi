@@ -16,7 +16,7 @@
 </div>
 
 <div class="card border-0 shadow-sm">
-    <div class="table-responsive">
+    <div class="table-responsive" role="region" tabindex="0" aria-label="Jadwal angsuran">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
@@ -39,10 +39,10 @@
                         <td class="text-end">{{formatRupiah .InterestDue}}</td>
                         <td class="text-end fw-bold text-primary">{{formatRupiah (add .PrincipalDue .InterestDue)}}</td>
                         <td class="text-center">
-                            {{if .ClosedOn}}
-                                <span class="badge bg-success">LUNAS</span>
-                            {{else if gt .InterestWaived 0}}
+                            {{if gt .InterestWaived 0}}
                                 <span class="badge bg-info text-dark">DIBEBASKAN</span>
+                            {{else if .ClosedOn}}
+                                <span class="badge bg-success">LUNAS</span>
                             {{else}}
                                 <span class="badge bg-secondary">BELUM LUNAS</span>
                             {{end}}

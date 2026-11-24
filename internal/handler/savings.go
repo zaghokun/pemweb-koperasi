@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"koperasi/internal/domain"
 	"koperasi/internal/middleware"
@@ -16,10 +15,7 @@ import (
 
 // ListSavings menampilkan riwayat mutasi simpanan dengan filter anggota dan jenis simpanan.
 func (h *Handler) ListSavings(w http.ResponseWriter, r *http.Request) {
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
+	page := listPage(r)
 
 	var memberID *int64
 	if midStr := r.URL.Query().Get("member_id"); midStr != "" {
@@ -34,7 +30,7 @@ func (h *Handler) ListSavings(w http.ResponseWriter, r *http.Request) {
 		savingType = &st
 	}
 
-	savings, total, err := h.savingSvc.List(r.Context(), memberID, savingType, page, 20)
+	savings, total, err := h.savingSvc.List(r.Context(), memberID, savingType, page, listPageSize)
 	if err != nil {
 		http.Error(w, "Gagal memuat riwayat simpanan", http.StatusInternalServerError)
 		return
@@ -43,7 +39,7 @@ func (h *Handler) ListSavings(w http.ResponseWriter, r *http.Request) {
 	h.Render(w, r, "savings/index.html", map[string]any{
 		"Savings":    savings,
 		"TotalCount": total,
-		"Page":       page,
+		"Pagination": pagination(r, page, total),
 		"MemberID":   r.URL.Query().Get("member_id"),
 		"SavingType": r.URL.Query().Get("type"),
 	})
@@ -52,8 +48,8 @@ func (h *Handler) ListSavings(w http.ResponseWriter, r *http.Request) {
 // ShowNewDeposit menampilkan form setoran simpanan (Wajib atau Sukarela).
 func (h *Handler) ShowNewDeposit(w http.ResponseWriter, r *http.Request) {
 	reqKey := generateRequestKey()
-	today := time.Now().Format("2006-01-02")
-	currentMonth := time.Now().Format("2006-01")
+	today := service.BusinessToday().Format("2006-01-02")
+	currentMonth := service.BusinessToday().Format("2006-01")
 
 	memberID := r.URL.Query().Get("member_id")
 
@@ -158,7 +154,7 @@ func (h *Handler) CreateDeposit(w http.ResponseWriter, r *http.Request) {
 // ShowNewWithdrawal menampilkan form penarikan simpanan sukarela.
 func (h *Handler) ShowNewWithdrawal(w http.ResponseWriter, r *http.Request) {
 	reqKey := generateRequestKey()
-	today := time.Now().Format("2006-01-02")
+	today := service.BusinessToday().Format("2006-01-02")
 	memberID := r.URL.Query().Get("member_id")
 
 	var sukarelaBalance int64

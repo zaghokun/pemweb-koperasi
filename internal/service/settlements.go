@@ -27,11 +27,11 @@ type SettleInput struct {
 }
 
 type SettlementPreviewResult struct {
-	Loan            domain.Loan
-	Member          domain.Member
-	SettlementDate  time.Time
-	Breakdown       domain.EarlySettlement
-	Balances        []domain.InstallmentBalance
+	Loan           domain.Loan
+	Member         domain.Member
+	SettlementDate time.Time
+	Breakdown      domain.EarlySettlement
+	Balances       []domain.InstallmentBalance
 }
 
 type SettleResult struct {
@@ -134,38 +134,38 @@ func (s *SettlementService) Settle(ctx context.Context, input SettleInput) (*Set
 	}
 	defer tx.Rollback()
 
-	// Kunci pinjaman terlebih dahulu
-	loan, err := s.loanRepo.GetByIDForUpdate(ctx, tx, input.LoanID)
+	loan, member, err := lockLoanAndMember(ctx, tx, s.loanRepo, s.memberRepo, input.LoanID)
 	if err != nil {
 		return nil, err
 	}
+
+	existingPayment, err := s.paymentRepo.GetByRequestKey(ctx, tx, reqKey)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
+	}
+	if existingPayment != nil {
+		if existingPayment.LoanID != input.LoanID || existingPayment.PaymentType != domain.PaymentEarlySettlement ||
+			existingPayment.Amount != input.ConfirmedAmount || !existingPayment.PaymentDate.Equal(normDate) {
+			return nil, ErrRequestKeyConflict
+		}
+		settlement, err := s.settlementRepo.GetByPaymentID(ctx, tx, existingPayment.ID)
+		if err != nil {
+			return nil, err
+		}
+		return &SettleResult{Payment: *existingPayment, Settlement: *settlement}, nil
+	}
+
 	if loan.Status != domain.LoanActive {
 		return nil, ErrLoanNotActiveForSettle
 	}
 	if loan.DisbursementDate == nil || normDate.Before(*loan.DisbursementDate) {
 		return nil, ErrSettlementBeforeDisb
 	}
-
-	// Kunci anggota
-	_, err = s.memberRepo.GetByIDForUpdate(ctx, tx, loan.MemberID)
-	if err != nil {
+	if err := validateMemberDate(ctx, tx, s.memberRepo, member, normDate); err != nil {
 		return nil, err
 	}
-
-	// Idempotency check: jika request_key sudah pernah diproses
-	existingPayment, err := s.paymentRepo.GetByRequestKey(ctx, tx, reqKey)
-	if err == nil && existingPayment != nil {
-		if existingPayment.LoanID != input.LoanID {
-			return nil, ErrRequestKeyConflict
-		}
-		existingSettlement, err := s.settlementRepo.GetByPaymentID(ctx, tx, existingPayment.ID)
-		if err == nil && existingSettlement != nil {
-			_ = tx.Commit()
-			return &SettleResult{
-				Payment:    *existingPayment,
-				Settlement: *existingSettlement,
-			}, nil
-		}
+	if err := s.installmentRepo.LockByLoanID(ctx, tx, input.LoanID); err != nil {
+		return nil, err
 	}
 
 	// Hitung ulang breakdown pelunasan di bawah lock
@@ -260,7 +260,7 @@ func (s *SettlementService) Settle(ctx context.Context, input SettleInput) (*Set
 	}
 
 	// 6. Ubah status pinjaman menjadi SETTLED
-	if err := s.loanRepo.UpdateStatus(ctx, tx, input.LoanID, domain.LoanSettled, nil, nil, nil, nil, &normDate, nil); err != nil {
+	if err := s.loanRepo.UpdateStatus(ctx, tx, input.LoanID, domain.LoanSettled, loan.ApprovedBy, loan.DisbursedBy, nil, loan.DisbursementDate, &normDate, nil); err != nil {
 		return nil, err
 	}
 

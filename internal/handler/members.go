@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
 	"koperasi/internal/domain"
 	"koperasi/internal/middleware"
@@ -14,12 +13,9 @@ import (
 // ListMembers menampilkan daftar anggota dengan pencarian dan pagination.
 func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("q")
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
+	page := listPage(r)
 
-	members, total, err := h.memberSvc.List(r.Context(), search, page, 20)
+	members, total, err := h.memberSvc.List(r.Context(), search, page, listPageSize)
 	if err != nil {
 		http.Error(w, "Gagal memuat daftar anggota", http.StatusInternalServerError)
 		return
@@ -29,13 +25,13 @@ func (h *Handler) ListMembers(w http.ResponseWriter, r *http.Request) {
 		"Members":      members,
 		"TotalMembers": total,
 		"Search":       search,
-		"Page":         page,
+		"Pagination":   pagination(r, page, total),
 	})
 }
 
 // ShowNewMember menampilkan formulir pendaftaran anggota baru dan setoran pokok awal.
 func (h *Handler) ShowNewMember(w http.ResponseWriter, r *http.Request) {
-	today := time.Now().Format("2006-01-02")
+	today := service.BusinessToday().Format("2006-01-02")
 	h.Render(w, r, "members/form.html", map[string]any{
 		"IsEdit":   false,
 		"JoinDate": today,
@@ -183,7 +179,7 @@ func (h *Handler) ShowExitMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	today := time.Now().Format("2006-01-02")
+	today := service.BusinessToday().Format("2006-01-02")
 	h.Render(w, r, "members/exit.html", map[string]any{
 		"Detail":   detail,
 		"ExitDate": today,

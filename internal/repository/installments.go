@@ -86,6 +86,25 @@ func (r *InstallmentRepository) GetByLoanID(ctx context.Context, db DBTX, loanID
 	return list, nil
 }
 
+func (r *InstallmentRepository) LockByLoanID(ctx context.Context, db DBTX, loanID int64) error {
+	const query = `
+		SELECT id FROM installments FORCE INDEX (uq_loan_installment_number)
+		WHERE loan_id = ? ORDER BY installment_number FOR UPDATE
+	`
+	rows, err := db.QueryContext(ctx, query, loanID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+	}
+	return rows.Err()
+}
+
 // CloseInstallment menandai angsuran telah lunas dan membekukan pertumbuhan denda pada tanggal closedOn.
 func (r *InstallmentRepository) CloseInstallment(ctx context.Context, db DBTX, id int64, closedOn time.Time) error {
 	const query = `
@@ -137,20 +156,17 @@ func (r *InstallmentRepository) GetInstallmentBalances(ctx context.Context, db D
 	var balances []domain.InstallmentBalance
 	for rows.Next() {
 		var ib domain.InstallmentBalance
-		var dueDateStr string
-		var waivedOnStr sql.NullString
-		var closedOnStr sql.NullString
 
 		err := rows.Scan(
 			&ib.Installment.ID,
 			&ib.Installment.LoanID,
 			&ib.Installment.InstallmentNumber,
-			&dueDateStr,
+			&ib.Installment.DueDate,
 			&ib.Installment.PrincipalDue,
 			&ib.Installment.InterestDue,
 			&ib.Installment.InterestWaived,
-			&waivedOnStr,
-			&closedOnStr,
+			&ib.Installment.WaivedOn,
+			&ib.Installment.ClosedOn,
 			&ib.PrincipalPaid,
 			&ib.InterestPaid,
 			&ib.PenaltyPaid,
@@ -159,25 +175,12 @@ func (r *InstallmentRepository) GetInstallmentBalances(ctx context.Context, db D
 			return nil, err
 		}
 
-		dd, err := domain.ParseBusinessDate(dueDateStr)
-		if err != nil {
-			return nil, err
+		if ib.Installment.WaivedOn != nil && ib.Installment.WaivedOn.After(asOf) {
+			ib.Installment.WaivedOn = nil
+			ib.Installment.InterestWaived = 0
 		}
-		ib.Installment.DueDate = dd
-
-		if waivedOnStr.Valid && waivedOnStr.String != "" {
-			wo, err := domain.ParseBusinessDate(waivedOnStr.String)
-			if err != nil {
-				return nil, err
-			}
-			ib.Installment.WaivedOn = &wo
-		}
-		if closedOnStr.Valid && closedOnStr.String != "" {
-			co, err := domain.ParseBusinessDate(closedOnStr.String)
-			if err != nil {
-				return nil, err
-			}
-			ib.Installment.ClosedOn = &co
+		if ib.Installment.ClosedOn != nil && ib.Installment.ClosedOn.After(asOf) {
+			ib.Installment.ClosedOn = nil
 		}
 
 		balances = append(balances, ib)
@@ -190,47 +193,23 @@ func (r *InstallmentRepository) GetInstallmentBalances(ctx context.Context, db D
 
 func scanInstallment(scanner interface{ Scan(dest ...any) error }) (*domain.Installment, error) {
 	var inst domain.Installment
-	var dueDateStr string
-	var waivedOnStr sql.NullString
-	var closedOnStr sql.NullString
 
 	err := scanner.Scan(
 		&inst.ID,
 		&inst.LoanID,
 		&inst.InstallmentNumber,
-		&dueDateStr,
+		&inst.DueDate,
 		&inst.PrincipalDue,
 		&inst.InterestDue,
 		&inst.InterestWaived,
-		&waivedOnStr,
-		&closedOnStr,
+		&inst.WaivedOn,
+		&inst.ClosedOn,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, err
-	}
-
-	dd, err := domain.ParseBusinessDate(dueDateStr)
-	if err != nil {
-		return nil, err
-	}
-	inst.DueDate = dd
-
-	if waivedOnStr.Valid && waivedOnStr.String != "" {
-		wo, err := domain.ParseBusinessDate(waivedOnStr.String)
-		if err != nil {
-			return nil, err
-		}
-		inst.WaivedOn = &wo
-	}
-	if closedOnStr.Valid && closedOnStr.String != "" {
-		co, err := domain.ParseBusinessDate(closedOnStr.String)
-		if err != nil {
-			return nil, err
-		}
-		inst.ClosedOn = &co
 	}
 
 	return &inst, nil

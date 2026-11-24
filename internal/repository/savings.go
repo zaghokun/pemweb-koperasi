@@ -197,8 +197,6 @@ func scanSaving(scanner interface{ Scan(dest ...any) error }) (*domain.Saving, e
 	var s domain.Saving
 	var st string
 	var tt string
-	var periodMonthStr sql.NullString
-	var txDateStr string
 	var desc sql.NullString
 
 	err := scanner.Scan(
@@ -208,8 +206,8 @@ func scanSaving(scanner interface{ Scan(dest ...any) error }) (*domain.Saving, e
 		&st,
 		&tt,
 		&s.Amount,
-		&periodMonthStr,
-		&txDateStr,
+		&s.PeriodMonth,
+		&s.TransactionDate,
 		&s.RequestKey,
 		&desc,
 		&s.CreatedAt,
@@ -227,20 +225,6 @@ func scanSaving(scanner interface{ Scan(dest ...any) error }) (*domain.Saving, e
 
 	s.SavingType = domain.SavingType(st)
 	s.TransactionType = domain.SavingTransactionType(tt)
-
-	td, err := domain.ParseBusinessDate(txDateStr)
-	if err != nil {
-		return nil, err
-	}
-	s.TransactionDate = td
-
-	if periodMonthStr.Valid && periodMonthStr.String != "" {
-		pm, err := domain.ParseBusinessDate(periodMonthStr.String)
-		if err != nil {
-			return nil, err
-		}
-		s.PeriodMonth = &pm
-	}
 
 	return &s, nil
 }

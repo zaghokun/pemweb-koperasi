@@ -57,7 +57,7 @@ func main() {
 	loanSvc := service.NewLoanService(db, loanRepo, installmentRepo, memberRepo, savingRepo)
 	paymentSvc := service.NewPaymentService(db, paymentRepo, loanRepo, installmentRepo, memberRepo)
 	settlementSvc := service.NewSettlementService(db, settlementRepo, loanRepo, installmentRepo, paymentRepo, memberRepo)
-	reportSvc := service.NewReportService(db, reportRepo, loanRepo, installmentRepo, paymentRepo, memberRepo, settlementRepo)
+	reportSvc := service.NewReportService(db, reportRepo, loanRepo, installmentRepo, paymentRepo, memberRepo)
 
 	// Tentukan lokasi template dan static
 	workDir, err := os.Getwd()

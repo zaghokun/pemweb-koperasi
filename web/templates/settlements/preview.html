@@ -1,18 +1,20 @@
-{{define "title"}}Pratinjau Pelunasan Dipercepat Pinjaman #{{.Preview.Loan.ID}} — Koperasi Karyawan Sejahtera{{end}}
+{{define "title"}}Pratinjau Pelunasan Dipercepat Pinjaman #{{.LoanID}} — Koperasi Karyawan Sejahtera{{end}}
 
 {{define "content"}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <a href="/loans/{{.Preview.Loan.ID}}" class="btn btn-sm btn-outline-secondary mb-2">&larr; Kembali ke Detail Pinjaman</a>
-        <h2 class="h4 fw-bold mb-0">Pelunasan Dipercepat — Pinjaman #{{.Preview.Loan.ID}}</h2>
+        <a href="/loans/{{.LoanID}}" class="btn btn-sm btn-outline-secondary mb-2">&larr; Kembali ke Detail Pinjaman</a>
+        <h2 class="h4 fw-bold mb-0">Pelunasan Dipercepat — Pinjaman #{{.LoanID}}</h2>
+        {{if .Preview}}
         <span class="text-muted small">Peminjam: <strong>{{.Preview.Member.Name}}</strong> (No. Anggota: {{.Preview.Member.MemberNumber}})</span>
+        {{end}}
     </div>
 </div>
 
 <!-- Form Pemilihan Tanggal Perhitungan -->
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
-        <form method="GET" action="/loans/{{.Preview.Loan.ID}}/settlement" class="row g-3 align-items-end">
+        <form method="GET" action="/loans/{{.LoanID}}/settlement" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label for="date" class="form-label small fw-semibold">Tanggal Rencana Pelunasan</label>
                 <input type="date" class="form-control" id="date" name="date" value="{{.TargetDate}}" required>
@@ -24,6 +26,7 @@
     </div>
 </div>
 
+{{if .Preview}}
 <div class="row g-4 mb-4">
     <!-- Rincian Tahap 1: Penyelesaian Tunggakan (jika ada) -->
     {{if gt .Preview.Breakdown.ArrearsAmount 0}}
@@ -74,17 +77,18 @@
             </div>
         </div>
 
-        <form method="POST" action="/loans/{{.Preview.Loan.ID}}/settlement" class="mt-4 pt-3 border-top">
+        <form method="POST" action="/loans/{{.LoanID}}/settlement" class="mt-4 pt-3 border-top">
             <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
             <input type="hidden" name="settlement_date" value="{{.TargetDate}}">
             <input type="hidden" name="confirmed_amount" value="{{.Preview.Breakdown.TotalReceived}}">
             <input type="hidden" name="request_key" value="{{.RequestKey}}">
 
             <div class="d-flex justify-content-end gap-2">
-                <a href="/loans/{{.Preview.Loan.ID}}" class="btn btn-secondary">Batal</a>
+                <a href="/loans/{{.LoanID}}" class="btn btn-secondary">Batal</a>
                 <button type="submit" class="btn btn-success fw-bold px-4">Terima Uang & Lunasi Pinjaman</button>
             </div>
         </form>
     </div>
 </div>
+{{end}}
 {{end}}

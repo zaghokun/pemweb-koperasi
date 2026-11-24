@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"crypto/rand"
-	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"koperasi/internal/domain"
 	"koperasi/internal/middleware"
+	"koperasi/internal/repository"
 	"koperasi/internal/service"
 )
 
@@ -26,27 +26,27 @@ func (h *Handler) ShowSettlementPreview(w http.ResponseWriter, r *http.Request) 
 	if dateStr != "" {
 		targetDate, err = domain.ParseBusinessDate(dateStr)
 		if err != nil {
-			targetDate = time.Now().UTC()
+			targetDate = service.BusinessToday()
 		}
 	} else {
-		targetDate = time.Now().UTC()
+		targetDate = service.BusinessToday()
 	}
-
-	preview, err := h.settlementSvc.Preview(r.Context(), loanID, targetDate)
-	if err != nil {
-		h.renderError(w, r, http.StatusBadRequest, fmt.Sprintf("Gagal menghitung pratinjau pelunasan: %v", err))
-		return
-	}
-
-	// Buat request key unik untuk formulir idempotensi
-	reqBytes := make([]byte, 16)
-	_, _ = rand.Read(reqBytes)
-	reqKey := fmt.Sprintf("settle-%d-%s", loanID, hex.EncodeToString(reqBytes))
 
 	data := h.newTemplateData(r)
+	data["LoanID"] = loanID
+	data["TargetDate"] = targetDate.Format("2006-01-02")
+	preview, err := h.settlementSvc.Preview(r.Context(), loanID, targetDate)
+	if errors.Is(err, repository.ErrNotFound) {
+		h.renderNotFound(w, r)
+		return
+	}
+	if err != nil {
+		data["FlashError"] = fmt.Sprintf("Gagal menghitung pratinjau pelunasan: %v", err)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusBadRequest)
+	}
 	data["Preview"] = preview
-	data["TargetDate"] = preview.SettlementDate.Format("2006-01-02")
-	data["RequestKey"] = reqKey
+	data["RequestKey"] = generateRequestKey()
 
 	h.render(w, r, "settlements/preview.html", data)
 }

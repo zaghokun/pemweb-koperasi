@@ -92,6 +92,10 @@ func (s *LoanService) Apply(ctx context.Context, input ApplyLoanInput) (*domain.
 		return nil, ErrMemberNotActive
 	}
 
+	if err := validateMemberDate(ctx, tx, s.memberRepo, member, normAppDate); err != nil {
+		return nil, err
+	}
+
 	// Pastikan tidak ada pinjaman terbuka (PENDING, APPROVED, ACTIVE)
 	hasOpen, err := s.loanRepo.HasOpenLoan(ctx, tx, input.MemberID)
 	if err != nil {
@@ -149,11 +153,8 @@ func (s *LoanService) Approve(ctx context.Context, loanID int64, userID int64) e
 	}
 	defer tx.Rollback()
 
-	loan, err := s.loanRepo.GetByIDForUpdate(ctx, tx, loanID)
+	loan, _, err := lockLoanAndMember(ctx, tx, s.loanRepo, s.memberRepo, loanID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return ErrLoanNotFound
-		}
 		return err
 	}
 
@@ -181,11 +182,8 @@ func (s *LoanService) Reject(ctx context.Context, loanID int64, reason string, u
 	}
 	defer tx.Rollback()
 
-	loan, err := s.loanRepo.GetByIDForUpdate(ctx, tx, loanID)
+	loan, _, err := lockLoanAndMember(ctx, tx, s.loanRepo, s.memberRepo, loanID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return ErrLoanNotFound
-		}
 		return err
 	}
 
@@ -193,7 +191,7 @@ func (s *LoanService) Reject(ctx context.Context, loanID int64, reason string, u
 		return ErrInvalidLoanStatus
 	}
 
-	if err := s.loanRepo.UpdateStatus(ctx, tx, loanID, domain.LoanRejected, nil, nil, &userID, nil, nil, &reason); err != nil {
+	if err := s.loanRepo.UpdateStatus(ctx, tx, loanID, domain.LoanRejected, loan.ApprovedBy, nil, &userID, nil, nil, &reason); err != nil {
 		return err
 	}
 
@@ -213,12 +211,8 @@ func (s *LoanService) Disburse(ctx context.Context, loanID int64, disbursementDa
 	}
 	defer tx.Rollback()
 
-	// Kunci pinjaman FOR UPDATE
-	loan, err := s.loanRepo.GetByIDForUpdate(ctx, tx, loanID)
+	loan, member, err := lockLoanAndMember(ctx, tx, s.loanRepo, s.memberRepo, loanID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, ErrLoanNotFound
-		}
 		return nil, err
 	}
 
@@ -226,17 +220,16 @@ func (s *LoanService) Disburse(ctx context.Context, loanID int64, disbursementDa
 		return nil, ErrInvalidLoanStatus
 	}
 
-	// Kunci anggota FOR UPDATE
-	member, err := s.memberRepo.GetByIDForUpdate(ctx, tx, loan.MemberID)
-	if err != nil {
-		return nil, err
-	}
 	if member.Status != domain.MemberActive {
 		return nil, ErrMemberNotActive
 	}
 
 	if normDisburseDate.Before(loan.ApplicationDate) {
 		return nil, ErrDisburseBeforeApply
+	}
+
+	if err := validateMemberDate(ctx, tx, s.memberRepo, member, normDisburseDate); err != nil {
+		return nil, err
 	}
 
 	// Validasi ulang batas pinjaman saat pencairan
@@ -263,7 +256,7 @@ func (s *LoanService) Disburse(ctx context.Context, loanID int64, disbursementDa
 	}
 
 	// Update status pinjaman menjadi ACTIVE
-	if err := s.loanRepo.UpdateStatus(ctx, tx, loanID, domain.LoanActive, nil, &userID, nil, &normDisburseDate, nil, nil); err != nil {
+	if err := s.loanRepo.UpdateStatus(ctx, tx, loanID, domain.LoanActive, loan.ApprovedBy, &userID, nil, &normDisburseDate, nil, nil); err != nil {
 		return nil, err
 	}
 

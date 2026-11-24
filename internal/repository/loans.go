@@ -186,12 +186,9 @@ func (r *LoanRepository) List(ctx context.Context, db DBTX, memberID *int64, sta
 func scanLoan(scanner interface{ Scan(dest ...any) error }) (*domain.Loan, error) {
 	var l domain.Loan
 	var statusStr string
-	var appDateStr string
 	var approvedBy sql.NullInt64
 	var disbursedBy sql.NullInt64
 	var rejectedBy sql.NullInt64
-	var disburseDateStr sql.NullString
-	var settledOnStr sql.NullString
 	var rejectReason sql.NullString
 
 	err := scanner.Scan(
@@ -199,14 +196,14 @@ func scanLoan(scanner interface{ Scan(dest ...any) error }) (*domain.Loan, error
 		&l.MemberID,
 		&l.Principal,
 		&l.TenorMonths,
-		&appDateStr,
+		&l.ApplicationDate,
 		&statusStr,
 		&l.CreatedBy,
 		&approvedBy,
 		&disbursedBy,
 		&rejectedBy,
-		&disburseDateStr,
-		&settledOnStr,
+		&l.DisbursementDate,
+		&l.SettledOn,
 		&rejectReason,
 		&l.CreatedAt,
 	)
@@ -219,12 +216,6 @@ func scanLoan(scanner interface{ Scan(dest ...any) error }) (*domain.Loan, error
 
 	l.Status = domain.LoanStatus(statusStr)
 
-	ad, err := domain.ParseBusinessDate(appDateStr)
-	if err != nil {
-		return nil, err
-	}
-	l.ApplicationDate = ad
-
 	if approvedBy.Valid {
 		uid := approvedBy.Int64
 		l.ApprovedBy = &uid
@@ -236,22 +227,6 @@ func scanLoan(scanner interface{ Scan(dest ...any) error }) (*domain.Loan, error
 	if rejectedBy.Valid {
 		uid := rejectedBy.Int64
 		l.RejectedBy = &uid
-	}
-
-	if disburseDateStr.Valid && disburseDateStr.String != "" {
-		dd, err := domain.ParseBusinessDate(disburseDateStr.String)
-		if err != nil {
-			return nil, err
-		}
-		l.DisbursementDate = &dd
-	}
-
-	if settledOnStr.Valid && settledOnStr.String != "" {
-		so, err := domain.ParseBusinessDate(settledOnStr.String)
-		if err != nil {
-			return nil, err
-		}
-		l.SettledOn = &so
 	}
 
 	if rejectReason.Valid {

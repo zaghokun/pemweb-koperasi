@@ -5,24 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{block "title" .}}Koperasi Karyawan Sejahtera{{end}}</title>
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
 </head>
 <body class="bg-light">
     {{if .User}}
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 shadow-sm">
-        <div class="container">
+    <nav class="navbar site-nav mb-4" aria-label="Navigasi utama">
+        <div class="container site-nav-inner">
             <a class="navbar-brand fw-bold" href="/dashboard">Koperasi Sejahtera</a>
-            <div class="d-flex align-items-center justify-content-between w-100 mt-2 mt-md-0">
-                <ul class="navbar-nav me-auto mb-0 d-flex flex-row gap-3">
-                    <li class="nav-item"><a class="nav-link text-white" href="/dashboard">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="/members">Anggota</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="/savings">Simpanan</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="/loans">Pinjaman</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="/reports/monthly">Laporan</a></li>
+            <button type="button" id="menu-toggle" class="btn btn-outline-light site-menu-toggle" aria-controls="site-menu" aria-expanded="false" hidden>Menu</button>
+            <div class="site-menu" id="site-menu">
+                <ul class="navbar-nav">
+                    <li><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li><a class="nav-link" href="/members">Anggota</a></li>
+                    <li><a class="nav-link" href="/savings">Simpanan</a></li>
+                    <li><a class="nav-link" href="/loans">Pinjaman</a></li>
+                    <li><a class="nav-link" href="/reports/monthly">Laporan</a></li>
                 </ul>
-                <div class="d-flex align-items-center text-white">
-                    <span class="me-3 small">Pengurus: <strong>{{.User.Name}}</strong></span>
-                    <form action="/logout" method="POST" class="d-inline m-0">
+                <div class="site-account">
+                    <span class="small">Pengurus <strong>{{.User.Name}}</strong></span>
+                    <form action="/logout" method="POST" class="m-0">
                         <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
                         <button type="submit" class="btn btn-outline-light btn-sm">Keluar</button>
                     </form>
@@ -30,6 +31,19 @@
             </div>
         </div>
     </nav>
+    <script>
+        const menuToggle = document.getElementById('menu-toggle');
+        menuToggle.hidden = false;
+        menuToggle.addEventListener('click', () => {
+            menuToggle.setAttribute('aria-expanded', menuToggle.getAttribute('aria-expanded') === 'false');
+        });
+        document.getElementById('site-menu').addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && menuToggle.getAttribute('aria-expanded') === 'true' && menuToggle.offsetWidth) {
+                menuToggle.setAttribute('aria-expanded', 'false');
+                menuToggle.focus();
+            }
+        });
+    </script>
     {{end}}
 
     <main class="container my-4">
@@ -52,3 +66,15 @@
     </footer>
 </body>
 </html>
+
+{{define "pagination"}}
+{{with .Pagination}}
+{{if or .Previous .Next}}
+<nav aria-label="Halaman hasil" class="pagination-bar mt-3">
+    <span>Halaman {{.Page}} dari {{.Pages}}</span>
+    {{if .Previous}}<a class="btn btn-outline-secondary" href="{{.Previous}}" rel="prev">Sebelumnya</a>{{end}}
+    {{if .Next}}<a class="btn btn-outline-primary" href="{{.Next}}" rel="next">Berikutnya</a>{{end}}
+</nav>
+{{end}}
+{{end}}
+{{end}}
